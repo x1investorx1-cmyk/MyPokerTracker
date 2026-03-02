@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClubWPT Hand Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --felt: #1a3a5c;
+    --gold: #e8f4fd;
+    --gold-light: #ffffff;
+    --red: #e05555;
+    --green: #2ecc71;
+    --cream: #f0f8ff;
+    --muted: #7aaac8;
+    --card-bg: #0f2540;
+    --border: rgba(232,244,253,0.2);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--felt);
+    color: var(--cream);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(255,255,255,0.04) 0%, transparent 60%),
+      repeating-linear-gradient(45deg, transparent, transparent 40px, rgba(255,255,255,0.01) 40px, rgba(255,255,255,0.01) 41px);
+  }
+  header {
+    background: linear-gradient(180deg, #071d33 0%, var(--felt) 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-family: 'Bebas Neue', cursive; font-size: 28px; letter-spacing: 3px; color: var(--gold); }
+  .logo span { color: var(--cream); }
+  .platform-badge {
+    background: rgba(255,255,255,0.08); border: 1px solid var(--border);
+    padding: 4px 12px; border-radius: 20px; font-size: 11px; color: var(--gold);
+    letter-spacing: 2px; text-transform: uppercase; font-family: 'DM Mono', monospace;
+  }
+  .container { max-width: 1300px; margin: 0 auto; padding: 32px; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+    gap: 16px; margin-bottom: 32px;
+  }
+  .stat-card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; position: relative; overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: var(--gold); }
+  .stat-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .stat-card:hover::before { opacity: 1; }
+  .stat-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+  .stat-value { font-family: 'Bebas Neue', cursive; font-size: 36px; color: var(--gold); line-height: 1; }
+  .stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; font-family: 'DM Mono', monospace; }
+
+  .main-layout { display: grid; grid-template-columns: 1fr 390px; gap: 24px; }
+
+  .panel { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .panel-header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .panel-title { font-family: 'Bebas Neue', cursive; font-size: 18px; letter-spacing: 2px; color: var(--gold); }
+  .panel-body { padding: 24px; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; }
+  input, textarea {
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--cream); font-family: 'DM Mono', monospace;
+    font-size: 14px; padding: 10px 14px; outline: none; transition: border-color 0.2s; width: 100%;
+  }
+  input:focus, textarea:focus { border-color: var(--gold); }
+  textarea { resize: vertical; min-height: 70px; }
+
+  .btn-primary {
+    background: #a8d8f0; color: #071d33; border: none; border-radius: 8px;
+    padding: 13px 24px; font-family: 'Bebas Neue', cursive; font-size: 20px;
+    letter-spacing: 2px; cursor: pointer; width: 100%; margin-top: 16px;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .btn-primary:hover { background: #ffffff; }
+  .btn-primary:active { transform: scale(0.98); }
+
+  .btn-set {
+    background: #a8d8f0; color: #071d33; border: none; border-radius: 8px;
+    padding: 0 18px; font-family: 'Bebas Neue', cursive; font-size: 17px;
+    cursor: pointer; white-space: nowrap; transition: background 0.2s; height: 42px;
+  }
+  .btn-set:hover { background: #ffffff; }
+
+  .btn-danger {
+    background: transparent; color: var(--red); border: 1px solid var(--red);
+    border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer;
+    font-family: 'DM Mono', monospace; transition: all 0.2s;
+  }
+  .btn-danger:hover { background: var(--red); color: #fff; }
+
+  .session-list { max-height: 480px; overflow-y: auto; }
+  .session-item {
+    border-bottom: 1px solid rgba(255,255,255,0.08); padding: 14px 0;
+    display: grid; grid-template-columns: auto 1fr auto auto auto;
+    gap: 14px; align-items: center;
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  .session-date { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .session-hands { font-family: 'Bebas Neue', cursive; font-size: 20px; color: var(--cream); }
+  .session-vpip { font-family: 'DM Mono', monospace; font-size: 12px; text-align: center; }
+  .session-result { font-family: 'Bebas Neue', cursive; font-size: 20px; }
+  .pos { color: var(--green); }
+  .neg { color: var(--red); }
+  .session-note { font-size: 11px; color: var(--muted); grid-column: 1 / -1; padding-top: 2px; font-style: italic; }
+
+  .gauge-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; }
+  .gauge-fill { height: 100%; border-radius: 4px; transition: width 0.5s cubic-bezier(.4,0,.2,1); }
+
+  .range-guide { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-top: 16px; }
+  .range-guide h4 { font-family: 'Bebas Neue', cursive; font-size: 14px; letter-spacing: 1px; color: var(--gold); margin-bottom: 8px; }
+  .range-row { display: flex; justify-content: space-between; font-size: 11px; font-family: 'DM Mono', monospace; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .range-row:last-child { border: none; }
+  .range-name { color: var(--muted); }
+  .range-val { color: var(--cream); }
+
+  .chart-wrap { padding: 24px; }
+  canvas { width: 100% !important; }
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 13px; line-height: 1.8; }
+  .info-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+  .chip { background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--gold); }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  @media (max-width: 900px) {
+    .main-layout { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  /* ── Lock Screen ── */
+  #lockScreen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: #071d33;
+    background-image:
+      radial-gradient(ellipse at 50% 40%, rgba(255,255,255,0.05) 0%, transparent 65%),
+      repeating-linear-gradient(45deg, transparent, transparent 40px, rgba(255,255,255,0.008) 40px, rgba(255,255,255,0.008) 41px);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+  }
+  #lockScreen.hidden { display: none; }
+  .lock-box {
+    background: #0f2540;
+    border: 1px solid rgba(168,216,240,0.35);
+    border-radius: 20px;
+    padding: 48px 44px 40px;
+    width: 100%; max-width: 380px;
+    text-align: center;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+  }
+  .lock-icon {
+    font-size: 44px; margin-bottom: 16px;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+  .lock-title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 32px; letter-spacing: 4px;
+    color: var(--gold); margin-bottom: 4px;
+  }
+  .lock-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--muted);
+    letter-spacing: 2px; text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+  .lock-input {
+    width: 100%; background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(168,216,240,0.35);
+    border-radius: 10px; color: var(--cream);
+    font-family: 'DM Mono', monospace; font-size: 18px;
+    padding: 14px 18px; outline: none; text-align: center;
+    letter-spacing: 3px; transition: border-color 0.2s;
+    margin-bottom: 14px;
+  }
+  .lock-input:focus { border-color: var(--gold); }
+  .lock-input.error { border-color: var(--red) !important; animation: shake 0.4s ease; }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)}
+    20%{transform:translateX(-8px)}
+    40%{transform:translateX(8px)}
+    60%{transform:translateX(-6px)}
+    80%{transform:translateX(6px)}
+  }
+  .lock-btn {
+    width: 100%; background: #a8d8f0; color: #071d33;
+    border: none; border-radius: 10px; padding: 14px;
+    font-family: 'Bebas Neue', cursive; font-size: 22px;
+    letter-spacing: 3px; cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .lock-btn:hover { background: #ffffff; }
+  .lock-btn:active { transform: scale(0.98); }
+  .lock-err {
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    color: var(--red); margin-top: 10px; min-height: 16px;
+    letter-spacing: 1px;
+  }
+  .lock-suits {
+    font-size: 22px; letter-spacing: 10px;
+    margin-bottom: 28px; opacity: 0.25;
+  }
+</style>
+<script>
+  var CORRECT_PASSWORD = '!?Testimonio99#';
+  function unlock() {
+    var input = document.getElementById('lockInput').value;
+    if (input === CORRECT_PASSWORD) {
+      sessionStorage.setItem('pt_unlocked', 'yes');
+      document.getElementById('lockScreen').classList.add('hidden');
+      document.body.style.overflow = '';
+      if (typeof renderAll === 'function') renderAll();
+    } else {
+      var inp = document.getElementById('lockInput');
+      var err = document.getElementById('lockErr');
+      inp.classList.add('error');
+      err.textContent = 'Incorrect password — try again.';
+      inp.value = '';
+      setTimeout(function() { inp.classList.remove('error'); inp.focus(); }, 500);
+    }
+  }
+</script>
+</head>
+<body>
+
+<!-- ── LOCK SCREEN ── -->
+<div id="lockScreen">
+  <div class="lock-box">
+    <div class="lock-icon">🔒</div>
+    <div class="lock-suits">♠ ♥ ♦ ♣</div>
+    <div class="lock-title">Poker Tracker</div>
+    <div class="lock-sub">Enter password to continue</div>
+    <input
+      class="lock-input"
+      type="password"
+      id="lockInput"
+      placeholder="••••••••••"
+      onkeydown="if(event.key==='Enter') unlock()"
+      autocomplete="current-password"
+    >
+    <button class="lock-btn" onclick="unlock()">UNLOCK</button>
+    <div class="lock-err" id="lockErr"></div>
+  </div>
+</div>
+
+<header>
+  <div class="logo">Poker <span>Tracker</span></div>
+  <div class="platform-badge">ClubWPT · Texas Hold'em</div>
+</header>
+
+<div class="container">
+  <div class="info-chips">
+    <div class="chip">8-Handed</div>
+    <div class="chip">Blinds: .10 / .20 / $1</div>
+    <div class="chip">Ante: $.20</div>
+    <div class="chip">Base: 36,600 Hands</div>
+  </div>
+
+  <div class="stats-grid" id="statsGrid"></div>
+
+  <div class="main-layout">
+    <!-- LEFT -->
+    <div>
+      <div class="panel" style="margin-bottom:24px;">
+        <div class="panel-header">
+          <span class="panel-title">Bankroll History</span>
+          <span id="brChartSub" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);"></span>
+        </div>
+        <div class="chart-wrap"><canvas id="bankrollChart" height="120"></canvas></div>
+      </div>
+      <div class="panel" style="margin-bottom:24px;">
+        <div class="panel-header"><span class="panel-title">VPIP Trend</span></div>
+        <div class="chart-wrap"><canvas id="vpipChart" height="110"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Session Log</span>
+          <span id="sessionCount" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);"></span>
+        </div>
+        <div style="padding:0 24px 16px;">
+          <div class="session-list" id="sessionList">
+            <div class="empty-state">No sessions logged yet.<br>Add your first session →</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div>
+      <!-- BANKROLL -->
+      <div class="panel" style="margin-bottom:20px;">
+        <div class="panel-header">
+          <span class="panel-title">💰 Bankroll</span>
+          <span id="brHealthBadge" style="font-family:'DM Mono',monospace;font-size:11px;padding:3px 10px;border-radius:20px;"></span>
+        </div>
+        <div class="panel-body">
+          <div style="text-align:center;padding:8px 0 18px;">
+            <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">Current Bankroll</div>
+            <div id="brBig" style="font-family:'Bebas Neue',cursive;font-size:58px;line-height:1;">$1000.00</div>
+            <div id="brChange" style="font-family:'DM Mono',monospace;font-size:12px;margin-top:4px;"></div>
+          </div>
+          <div style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:6px;">
+              <span>$0</span><span>Start: $<span id="brStartLabel">1,000</span></span><span id="brGoalLabel">Goal: $2,000</span>
+            </div>
+            <div class="gauge-bar" style="height:12px;"><div class="gauge-fill" id="brProgressBar" style="width:50%;background:linear-gradient(90deg,#3498db,#a8d8f0);"></div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
+            <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px;text-align:center;">
+              <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Buyins</div>
+              <div id="brBuyins" style="font-family:'Bebas Neue',cursive;font-size:26px;color:var(--cream);">50</div>
+              <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);">@ $20 ea</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px;text-align:center;">
+              <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Best</div>
+              <div id="brBest" style="font-family:'Bebas Neue',cursive;font-size:26px;color:var(--green);">—</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px;text-align:center;">
+              <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Worst</div>
+              <div id="brWorst" style="font-family:'Bebas Neue',cursive;font-size:26px;color:var(--red);">—</div>
+            </div>
+          </div>
+          <div id="stakeRec" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;line-height:1.7;"></div>
+          <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+            <label>Adjust Starting Bankroll ($)</label>
+            <div style="display:flex;gap:8px;margin-top:8px;">
+              <input type="number" id="brAdjust" placeholder="e.g. 1000" step="10" min="0">
+              <button class="btn-set" onclick="adjustBankroll()">Set</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LOG SESSION -->
+      <div class="panel" style="margin-bottom:20px;">
+        <div class="panel-header"><span class="panel-title">Log Session</span></div>
+        <div class="panel-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="fDate">
+            </div>
+            <div class="form-group">
+              <label>Hands Played</label>
+              <input type="number" id="fHands" placeholder="e.g. 120" min="1">
+            </div>
+            <div class="form-group">
+              <label>VPIP Hands (saw flop)</label>
+              <input type="number" id="fVpip" placeholder="e.g. 38" min="0">
+            </div>
+            <div class="form-group">
+              <label>PFR Hands (raised preflop)</label>
+              <input type="number" id="fPfr" placeholder="e.g. 22" min="0">
+            </div>
+            <div class="form-group">
+              <label>Result ($)</label>
+              <input type="number" id="fResult" placeholder="+/- amount" step="0.01">
+            </div>
+            <div class="form-group">
+              <label>Duration (hrs)</label>
+              <input type="number" id="fDuration" placeholder="e.g. 2.5" step="0.5" min="0">
+            </div>
+            <div class="form-group full">
+              <label>Notes</label>
+              <textarea id="fNotes" placeholder="e.g. ran good, tough table, 3-bet light..."></textarea>
+            </div>
+          </div>
+          <button class="btn-primary" onclick="logSession()">⬢ Log Session</button>
+        </div>
+      </div>
+
+      <!-- LIVE STATS -->
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Live Stats</span></div>
+        <div class="panel-body">
+          <div style="margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">VPIP</span>
+              <span style="font-family:'DM Mono',monospace;font-size:11px;" id="vpipPct">33.0%</span>
+            </div>
+            <div class="gauge-bar"><div class="gauge-fill" id="vpipBar" style="width:33%;background:linear-gradient(90deg,#3498db,#a8d8f0);"></div></div>
+          </div>
+          <div style="margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">PFR</span>
+              <span style="font-family:'DM Mono',monospace;font-size:11px;" id="pfrPct">—</span>
+            </div>
+            <div class="gauge-bar"><div class="gauge-fill" id="pfrBar" style="width:0%;background:linear-gradient(90deg,#2980b9,#a8d8f0);"></div></div>
+          </div>
+          <div style="margin-bottom:6px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">3-Bet Approx</span>
+              <span style="font-family:'DM Mono',monospace;font-size:11px;" id="threeBet">—</span>
+            </div>
+            <div class="gauge-bar"><div class="gauge-fill" id="threeBetBar" style="width:0%;background:linear-gradient(90deg,#8e44ad,#c0392b);"></div></div>
+          </div>
+          <div class="range-guide">
+            <h4>8-Max Reference Ranges</h4>
+            <div class="range-row"><span class="range-name">Nit</span><span class="range-val">VPIP &lt;15%</span></div>
+            <div class="range-row"><span class="range-name">Tight-Passive</span><span class="range-val">15–20%</span></div>
+            <div class="range-row"><span class="range-name">TAG</span><span class="range-val">20–27%</span></div>
+            <div class="range-row"><span class="range-name">LAG ← You ✓</span><span class="range-val">28–38%</span></div>
+            <div class="range-row"><span class="range-name">Calling Station</span><span class="range-val">38–50%</span></div>
+            <div class="range-row"><span class="range-name">Maniac</span><span class="range-val">&gt;50%</span></div>
+          </div>
+        </div>
+      </div>
+    </div><!-- end right -->
+  </div><!-- end main-layout -->
+</div><!-- end container -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+var BASE_HANDS        = 36600;
+var BASE_VPIP_HANDS   = Math.round(36600 * 0.33);
+var DEFAULT_BANKROLL  = 1000;
+
+var sessions     = [];
+var bankrollStart = DEFAULT_BANKROLL;
+var vpipChart    = null;
+var brChart      = null;
+
+// Load from localStorage safely
+try {
+  var s = localStorage.getItem('pt_sessions');
+  if (s) sessions = JSON.parse(s);
+} catch (e) { sessions = []; }
+
+try {
+  var b = localStorage.getItem('pt_bankroll');
+  if (b !== null) bankrollStart = parseFloat(b);
+} catch (e) { bankrollStart = DEFAULT_BANKROLL; }
+
+// Set today's date
+document.getElementById('fDate').value = new Date().toISOString().split('T')[0];
+
+// ─────────────────────────────────────────────
+// SAVE
+// ─────────────────────────────────────────────
+function save() {
+  try { localStorage.setItem('pt_sessions', JSON.stringify(sessions)); } catch(e) {}
+}
+
+// ─────────────────────────────────────────────
+// CALCULATIONS
+// ─────────────────────────────────────────────
+function totalHands()     { var t=0; for(var i=0;i<sessions.length;i++) t+=sessions[i].hands;  return t; }
+function totalVpipHands() { var t=0; for(var i=0;i<sessions.length;i++) t+=sessions[i].vpip;   return t; }
+function totalPfrHands()  { var t=0; for(var i=0;i<sessions.length;i++) t+=(sessions[i].pfr||0); return t; }
+function totalResult()    { var t=0; for(var i=0;i<sessions.length;i++) t+=(sessions[i].result||0); return t; }
+
+function currentBankroll() { return bankrollStart + totalResult(); }
+function buyinsAvail()     { return Math.floor(currentBankroll() / 20); }
+
+function overallVPIP() {
+  var th = BASE_HANDS + totalHands();
+  var tv = BASE_VPIP_HANDS + totalVpipHands();
+  return th > 0 ? (tv / th * 100) : 33;
+}
+function sessionVPIP() {
+  var th = totalHands(), tv = totalVpipHands();
+  return th > 0 ? (tv / th * 100) : null;
+}
+function overallPFR() {
+  var th = totalHands(), tv = totalPfrHands();
+  return th > 0 ? (tv / th * 100) : null;
+}
+function winRate() {
+  var th = totalHands();
+  if (th < 100) return null;
+  return (totalResult() / th * 100).toFixed(2);
+}
+function brHealth() {
+  var br = currentBankroll();
+  if (br >= 1000) return { label:'Healthy', color:'#27ae60' };
+  if (br >= 500)  return { label:'OK',      color:'#a8d8f0' };
+  if (br >= 200)  return { label:'Caution', color:'#e67e22' };
+  return                  { label:'Danger', color:'#c0392b' };
+}
+
+// ─────────────────────────────────────────────
+// LOG SESSION (called by button)
+// ─────────────────────────────────────────────
+function logSession() {
+  var handsVal  = document.getElementById('fHands').value;
+  var vpipVal   = document.getElementById('fVpip').value;
+  var pfrVal    = document.getElementById('fPfr').value;
+  var resultVal = document.getElementById('fResult').value;
+  var durVal    = document.getElementById('fDuration').value;
+  var notesVal  = document.getElementById('fNotes').value;
+  var dateVal   = document.getElementById('fDate').value;
+
+  var hands  = parseInt(handsVal, 10);
+  var vpip   = parseInt(vpipVal, 10);
+
+  if (!handsVal || isNaN(hands) || hands < 1) {
+    alert('Please enter how many hands you played.');
+    return;
+  }
+  if (vpipVal === '' || isNaN(vpip) || vpip < 0) {
+    alert('Please enter VPIP hands (hands where you saw the flop). Enter 0 if none.');
+    return;
+  }
+  if (vpip > hands) {
+    alert('VPIP hands (' + vpip + ') cannot be more than total hands (' + hands + ').');
+    return;
+  }
+
+  var session = {
+    date:   dateVal || new Date().toISOString().split('T')[0],
+    hands:  hands,
+    vpip:   vpip,
+    pfr:    (pfrVal !== '' && !isNaN(parseInt(pfrVal,10))) ? parseInt(pfrVal,10) : 0,
+    result: (resultVal !== '' && !isNaN(parseFloat(resultVal))) ? parseFloat(resultVal) : 0,
+    dur:    (durVal !== '' && !isNaN(parseFloat(durVal))) ? parseFloat(durVal) : null,
+    notes:  notesVal.trim()
+  };
+
+  sessions.push(session);
+  save();
+  renderAll();
+
+  // Clear form fields (keep date)
+  document.getElementById('fHands').value    = '';
+  document.getElementById('fVpip').value     = '';
+  document.getElementById('fPfr').value      = '';
+  document.getElementById('fResult').value   = '';
+  document.getElementById('fDuration').value = '';
+  document.getElementById('fNotes').value    = '';
+}
+
+// ─────────────────────────────────────────────
+// DELETE SESSION (called by button)
+// ─────────────────────────────────────────────
+function deleteSession(idx) {
+  if (!confirm('Delete this session?')) return;
+  sessions.splice(idx, 1);
+  save();
+  renderAll();
+}
+
+// ─────────────────────────────────────────────
+// ADJUST BANKROLL (called by button)
+// ─────────────────────────────────────────────
+function adjustBankroll() {
+  var val = parseFloat(document.getElementById('brAdjust').value);
+  if (isNaN(val) || val < 0) {
+    alert('Please enter a valid dollar amount (e.g. 1000).');
+    return;
+  }
+  bankrollStart = val;
+  try { localStorage.setItem('pt_bankroll', val); } catch(e) {}
+  document.getElementById('brAdjust').value = '';
+  renderAll();
+}
+
+// ─────────────────────────────────────────────
+// RENDER STATS
+// ─────────────────────────────────────────────
+function renderStats() {
+  var th     = BASE_HANDS + totalHands();
+  var vpip   = overallVPIP().toFixed(1);
+  var svpip  = sessionVPIP();
+  var pfr    = overallPFR();
+  var result = totalResult();
+  var wr     = winRate();
+  var br     = currentBankroll();
+  var h      = brHealth();
+  var avg    = sessions.length > 0 ? Math.round(totalHands() / sessions.length) : 0;
+
+  var vpipColor = parseFloat(vpip) > 38 ? '#c0392b' : parseFloat(vpip) > 27 ? '#27ae60' : '#a8d8f0';
+
+  var cards = [
+    { label:'Bankroll',     value:'$'+br.toFixed(2),                                  sub: buyinsAvail()+' buyins · '+h.label, color: h.color },
+    { label:'Total Hands',  value: th.toLocaleString(),                               sub: '+'+totalHands().toLocaleString()+' this tracker', color: '#a8d8f0' },
+    { label:'Sessions',     value: sessions.length,                                   sub: avg+' hands avg', color: '#a8d8f0' },
+    { label:'Overall VPIP', value: vpip+'%',                                          sub: svpip ? 'Session avg: '+svpip.toFixed(1)+'%' : 'Based on 36.6k hands', color: vpipColor },
+    { label:'PFR',          value: pfr ? pfr.toFixed(1)+'%' : '—',                   sub: pfr ? 'Gap: '+(vpip-pfr).toFixed(1)+'pp' : 'Log PFR hands', color: '#a8d8f0' },
+    { label:'Net Result',   value: (result>=0?'+':'')+'$'+Math.abs(result).toFixed(2),sub: totalHands()+' hands tracked', color: result>0?'#27ae60':result<0?'#c0392b':'#a8d8f0' },
+    { label:'BB / 100',     value: wr ? wr : '—',                                    sub: wr ? 'Win rate estimate' : 'Need 100+ hands', color: wr>0?'#27ae60':wr<0?'#c0392b':'#a8d8f0' }
+  ];
+
+  var html = '';
+  for (var i=0; i<cards.length; i++) {
+    html += '<div class="stat-card">' +
+      '<div class="stat-label">'+cards[i].label+'</div>' +
+      '<div class="stat-value" style="color:'+cards[i].color+'">'+cards[i].value+'</div>' +
+      '<div class="stat-sub">'+cards[i].sub+'</div>' +
+      '</div>';
+  }
+  document.getElementById('statsGrid').innerHTML = html;
+}
+
+// ─────────────────────────────────────────────
+// RENDER BANKROLL PANEL
+// ─────────────────────────────────────────────
+function renderBankroll() {
+  var br     = currentBankroll();
+  var change = br - bankrollStart;
+  var h      = brHealth();
+  var goal   = bankrollStart * 2;
+  var pct    = Math.min((br / goal) * 100, 100);
+
+  document.getElementById('brBig').textContent        = '$' + br.toFixed(2);
+  document.getElementById('brBig').style.color        = h.color;
+  document.getElementById('brChange').textContent     = (change>=0?'+':'') + '$' + change.toFixed(2) + ' since start';
+  document.getElementById('brChange').style.color     = change >= 0 ? '#27ae60' : '#c0392b';
+  document.getElementById('brProgressBar').style.width = pct + '%';
+  document.getElementById('brGoalLabel').textContent  = 'Goal: $' + goal.toLocaleString();
+  document.getElementById('brStartLabel').textContent = bankrollStart.toLocaleString();
+  document.getElementById('brBuyins').textContent     = buyinsAvail();
+
+  var badge = document.getElementById('brHealthBadge');
+  badge.textContent      = h.label;
+  badge.style.color      = h.color;
+  badge.style.background = h.color + '22';
+  badge.style.border     = '1px solid ' + h.color + '55';
+
+  if (sessions.length > 0) {
+    var best = sessions[0].result || 0, worst = sessions[0].result || 0;
+    for (var i=1; i<sessions.length; i++) {
+      var r = sessions[i].result || 0;
+      if (r > best) best = r;
+      if (r < worst) worst = r;
+    }
+    document.getElementById('brBest').textContent  = (best>=0?'+':'') + '$' + best.toFixed(0);
+    document.getElementById('brWorst').textContent = (worst>=0?'+':'') + '$' + worst.toFixed(0);
+  } else {
+    document.getElementById('brBest').textContent  = '—';
+    document.getElementById('brWorst').textContent = '—';
+  }
+
+  var rec = document.getElementById('stakeRec');
+  if (br >= 2000) {
+    rec.innerHTML = '<span style="color:#27ae60">▲ Ready to move up</span> — bankroll supports higher stakes.';
+  } else if (br >= 1000) {
+    rec.innerHTML = '<span style="color:#27ae60">✓ Comfortable</span> — '+buyinsAvail()+' buyins at current stakes. Keep building.';
+  } else if (br >= 500) {
+    rec.innerHTML = '<span style="color:#a8d8f0">⚠ Manageable</span> — '+buyinsAvail()+' buyins remain. Stay disciplined.';
+  } else if (br >= 200) {
+    rec.innerHTML = '<span style="color:#e67e22">⚠ Caution</span> — consider dropping to lower stakes to rebuild.';
+  } else {
+    rec.innerHTML = '<span style="color:#c0392b">▼ Danger zone</span> — only '+buyinsAvail()+' buyins left. Move down immediately.';
+  }
+}
+
+// ─────────────────────────────────────────────
+// RENDER SESSION LIST
+// ─────────────────────────────────────────────
+function renderList() {
+  document.getElementById('sessionCount').textContent = sessions.length + ' sessions';
+  var el = document.getElementById('sessionList');
+  if (sessions.length === 0) {
+    el.innerHTML = '<div class="empty-state">No sessions logged yet.<br>Add your first session →</div>';
+    return;
+  }
+  var html = '';
+  for (var ri = 0; ri < sessions.length; ri++) {
+    var idx = sessions.length - 1 - ri; // newest first
+    var s   = sessions[idx];
+    var vp  = Math.round(s.vpip / s.hands * 100);
+    var res = s.result || 0;
+    var vpc = vp > 38 ? '#e74c3c' : vp > 27 ? '#27ae60' : '#a8d8f0';
+    html +=
+      '<div class="session-item">' +
+        '<span class="session-date">' + s.date + '</span>' +
+        '<span class="session-hands">' + s.hands + ' <span style="font-size:12px;font-family:DM Mono,monospace;color:#7a8a7e">hands</span></span>' +
+        '<span class="session-vpip" style="color:' + vpc + '">' + vp + '%<br><span style="color:#7a8a7e;font-size:10px">VPIP</span></span>' +
+        '<span class="session-result ' + (res>=0?'pos':'neg') + '">' + (res>=0?'+':'') + '$' + Math.abs(res).toFixed(2) + '</span>' +
+        '<button class="btn-danger" onclick="deleteSession(' + idx + ')">✕</button>' +
+        (s.notes ? '<span class="session-note">&ldquo;' + s.notes + '&rdquo;</span>' : '') +
+      '</div>';
+  }
+  el.innerHTML = html;
+}
+
+// ─────────────────────────────────────────────
+// RENDER GAUGES
+// ─────────────────────────────────────────────
+function renderGauges() {
+  var vpip = overallVPIP();
+  var pfr  = overallPFR();
+
+  document.getElementById('vpipPct').textContent  = vpip.toFixed(1) + '%';
+  document.getElementById('vpipBar').style.width  = Math.min(vpip, 100) + '%';
+
+  if (pfr !== null) {
+    document.getElementById('pfrPct').textContent  = pfr.toFixed(1) + '%';
+    document.getElementById('pfrBar').style.width  = Math.min(pfr * 2.5, 100) + '%';
+    var tb = Math.max(0, pfr - vpip * 0.3);
+    document.getElementById('threeBet').textContent     = tb.toFixed(1) + '%';
+    document.getElementById('threeBetBar').style.width  = Math.min(tb * 15, 100) + '%';
+  } else {
+    document.getElementById('pfrPct').textContent  = '—';
+    document.getElementById('pfrBar').style.width  = '0%';
+    document.getElementById('threeBet').textContent    = '—';
+    document.getElementById('threeBetBar').style.width = '0%';
+  }
+}
+
+// ─────────────────────────────────────────────
+// RENDER CHART
+// ─────────────────────────────────────────────
+function renderChart() {
+  var ctx = document.getElementById('vpipChart').getContext('2d');
+  if (sessions.length < 2) {
+    if (vpipChart) { vpipChart.destroy(); vpipChart = null; }
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.fillStyle = 'rgba(122,138,126,0.5)';
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('Log 2+ sessions to see your VPIP trend', ctx.canvas.width / 2, 55);
+    return;
+  }
+  var labels  = [], vpips = [], rolling = [], baseline = [];
+  for (var i = 0; i < sessions.length; i++) {
+    labels.push(sessions[i].date.slice(5));
+    vpips.push(+(sessions[i].vpip / sessions[i].hands * 100).toFixed(1));
+    baseline.push(33);
+    var start = Math.max(0, i - 4);
+    var sh = 0, sv = 0;
+    for (var j = start; j <= i; j++) { sh += sessions[j].hands; sv += sessions[j].vpip; }
+    rolling.push(+(sv / sh * 100).toFixed(1));
+  }
+  if (vpipChart) vpipChart.destroy();
+  vpipChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        { label:'Session VPIP %', data:vpips, borderColor:'rgba(232,244,253,0.7)', backgroundColor:'rgba(255,255,255,0.05)', borderWidth:1.5, pointRadius:3, pointBackgroundColor: '#a8d8f0', tension:0.4, fill:true },
+        { label:'Rolling 5',      data:rolling, borderColor:'#27ae60', borderWidth:2, pointRadius:0, tension:0.4, fill:false },
+        { label:'33% Baseline',   data:baseline, borderColor:'rgba(255,255,255,0.15)', borderWidth:1, borderDash:[4,4], pointRadius:0, fill:false }
+      ]
+    },
+    options: {
+      responsive:true,
+      plugins: {
+        legend: { labels:{ color:'rgba(245,240,232,0.55)', font:{family:'monospace',size:11}, boxWidth:18 } },
+        tooltip:{ backgroundColor:'#0f2540', borderColor:'rgba(232,244,253,0.3)', borderWidth:1, titleColor:'#a8d8f0', bodyColor:'#f5f0e8' }
+      },
+      scales: {
+        x: { ticks:{ color:'rgba(245,240,232,0.35)', font:{size:10} }, grid:{ color:'rgba(255,255,255,0.04)' } },
+        y: { min:10, max:60, ticks:{ color:'rgba(245,240,232,0.35)', font:{size:10}, callback:function(v){ return v+'%'; } }, grid:{ color:'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+}
+
+
+// ─────────────────────────────────────────────
+// RENDER BANKROLL CHART
+// ─────────────────────────────────────────────
+function renderBankrollChart() {
+  var ctx = document.getElementById('bankrollChart').getContext('2d');
+  if (sessions.length < 1) {
+    if (brChart) { brChart.destroy(); brChart = null; }
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.fillStyle = 'rgba(122,138,126,0.5)';
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('Log sessions to see your bankroll over time', ctx.canvas.width / 2, 60);
+    return;
+  }
+
+  var labels  = ['Start'];
+  var brData  = [bankrollStart];
+  var running = bankrollStart;
+  for (var i = 0; i < sessions.length; i++) {
+    running += (sessions[i].result || 0);
+    labels.push(sessions[i].date.slice(5));
+    brData.push(+running.toFixed(2));
+  }
+
+  var sub = document.getElementById('brChartSub');
+  var current = brData[brData.length - 1];
+  var change  = current - bankrollStart;
+  sub.textContent = (change >= 0 ? '▲ +$' : '▼ -$') + Math.abs(change).toFixed(2);
+  sub.style.color = change >= 0 ? '#27ae60' : '#c0392b';
+
+  var startLine = [];
+  for (var k = 0; k < brData.length; k++) startLine.push(bankrollStart);
+
+  var minVal = brData[0], maxVal = brData[0];
+  for (var m = 1; m < brData.length; m++) {
+    if (brData[m] < minVal) minVal = brData[m];
+    if (brData[m] > maxVal) maxVal = brData[m];
+  }
+  var pad = Math.max((maxVal - minVal) * 0.18, 30);
+
+  if (brChart) brChart.destroy();
+  brChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Bankroll ($)',
+          data: brData,
+          borderColor: current >= bankrollStart ? '#27ae60' : '#c0392b',
+          backgroundColor: (function() {
+            // Will be set via plugin below — placeholder
+            return current >= bankrollStart ? 'rgba(39,174,96,0.12)' : 'rgba(192,57,43,0.12)';
+          })(),
+          borderWidth: 2.5,
+          pointRadius: function(c) { return c.dataIndex === 0 ? 0 : 5; },
+          pointBackgroundColor: function(c) {
+            return brData[c.dataIndex] >= bankrollStart ? '#27ae60' : '#c0392b';
+          },
+          pointBorderColor: '#0f2540',
+          pointBorderWidth: 2,
+          tension: 0.35,
+          fill: true
+        },
+        {
+          label: 'Start: $' + bankrollStart.toLocaleString(),
+          data: startLine,
+          borderColor: 'rgba(232,244,253,0.5)',
+          borderWidth: 1.5,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          fill: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          labels: { color: 'rgba(245,240,232,0.55)', font: { family: 'monospace', size: 11 }, boxWidth: 16 }
+        },
+        tooltip: {
+          backgroundColor: '#0f2540',
+          borderColor: 'rgba(232,244,253,0.3)',
+          borderWidth: 1,
+          titleColor: '#a8d8f0',
+          bodyColor: '#f5f0e8',
+          callbacks: {
+            label: function(item) {
+              if (item.datasetIndex === 0) {
+                var v = item.raw;
+                var d = v - bankrollStart;
+                return '  Bankroll: $' + v.toFixed(2) + '  (' + (d >= 0 ? '+' : '') + '$' + d.toFixed(2) + ')';
+              }
+              return '  Baseline: $' + item.raw.toFixed(2);
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: 'rgba(245,240,232,0.35)', font: { size: 10 } },
+          grid:  { color: 'rgba(255,255,255,0.04)' }
+        },
+        y: {
+          min: Math.floor(minVal - pad),
+          max: Math.ceil(maxVal + pad),
+          ticks: {
+            color: 'rgba(245,240,232,0.35)',
+            font:  { size: 10 },
+            callback: function(v) { return '$' + v; }
+          },
+          grid: { color: 'rgba(255,255,255,0.04)' }
+        }
+      }
+    }
+  });
+}
+
+// ─────────────────────────────────────────────
+// RENDER ALL
+// ─────────────────────────────────────────────
+function renderAll() {
+  renderStats();
+  renderBankroll();
+  renderList();
+  renderGauges();
+  renderBankrollChart();
+  renderChart();
+}
+
+// ─────────────────────────────────────────────
+// PAGE LOAD — show app if already unlocked
+// ─────────────────────────────────────────────
+if (sessionStorage.getItem('pt_unlocked') === 'yes') {
+  document.getElementById('lockScreen').classList.add('hidden');
+  renderAll();
+} else {
+  document.body.style.overflow = 'hidden';
+  setTimeout(function() {
+    var inp = document.getElementById('lockInput');
+    if (inp) inp.focus();
+  }, 150);
+}
+</script>
+</body>
+</html>
