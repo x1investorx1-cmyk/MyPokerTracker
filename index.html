@@ -245,7 +245,7 @@
     <div class="chip">8-Handed</div>
     <div class="chip">Blinds: .10 / .20 / $1</div>
     <div class="chip">Ante: $.20</div>
-    <div class="chip">Base: 36,600 Hands</div>
+    <div class="chip">Base: 36,731 Hands</div>
   </div>
 
   <!-- TOP STATS -->
@@ -620,9 +620,10 @@
 // ═══════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════
-var BASE_HANDS       = 36600;
-var BASE_VPIP_HANDS  = Math.round(36600 * 0.33);
-var DEFAULT_BANKROLL = 1000;
+var BASE_HANDS       = 36731;
+var BASE_VPIP_HANDS  = Math.round(36731 * 0.33); // 33% VPIP baseline
+var BASE_PFR_HANDS   = Math.round(36731 * 0.16); // 16% PFR baseline
+var DEFAULT_BANKROLL = 750;
 
 var sessions     = [];
 var bankrollStart = DEFAULT_BANKROLL;
@@ -697,8 +698,8 @@ function sessionVPIP() {
   return th > 0 ? (tv / th * 100) : null;
 }
 function overallPFR() {
-  var th = totalHands(), tv = totalPfrHands();
-  return th > 0 ? (tv / th * 100) : null;
+  var th = BASE_HANDS + totalHands(), tv = BASE_PFR_HANDS + totalPfrHands();
+  return th > 0 ? (tv / th * 100) : 16;
 }
 function handsPerHour() {
   var td = totalDuration(), th = totalHands();
@@ -851,7 +852,7 @@ function renderStats() {
     { label:'Bankroll',    value:'$'+br.toFixed(2),                                   sub:buyinsAvail()+' buyins · '+h.label,           color:h.color },
     { label:'Total Hands', value:th.toLocaleString(),                                  sub:'+'+totalHands().toLocaleString()+' tracked',  color:'#a8d8f0' },
     { label:'Sessions',    value:sessions.length,                                      sub:avg+' hands avg',                              color:'#a8d8f0' },
-    { label:'VPIP',        value:vpip+'%',                                             sub:svpip?'Session: '+svpip.toFixed(1)+'%':'36.6k base', color:vpipC },
+    { label:'VPIP',        value:vpip+'%',                                             sub:svpip?'Session: '+svpip.toFixed(1)+'%':'36.7k base', color:vpipC },
     { label:'PFR',         value:pfr?pfr.toFixed(1)+'%':'—',                          sub:pfr?'Gap: '+(vpip-pfr).toFixed(1)+'pp':'Log PFR', color:'#a8d8f0' },
     { label:'Net P&L',     value:(result>=0?'+':'')+'$'+Math.abs(result).toFixed(2),  sub:totalHands()+' hands tracked',                 color:result>0?'#2ecc71':result<0?'#e05555':'#a8d8f0' },
     { label:'BB/100',      value:wr?wr:'—',                                            sub:wr?'Win rate est.':'Need 100+ hands',           color:wr>0?'#2ecc71':wr<0?'#e05555':'#a8d8f0' },
