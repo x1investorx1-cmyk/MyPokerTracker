@@ -1,0 +1,2319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>POKER</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&family=Pacifico&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --gold:#c9a84c;--gl:#e8c96a;--gd:#7a5a18;
+  --felt:#2d9e5f;--felt2:#228c4e;--felt3:#186636;
+  --rail:#5a2d0c;--rail2:#3d1e08;--rail3:#7a3f12;
+  --bgt:#003f8a;
+  --tx:#f5efe0;--dim:#a07840;
+  --red:#e63946;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:#080f09;font-family:'Lato',sans-serif;color:var(--tx);user-select:none;}
+
+/* ─── ROOM ─── */
+#room{
+  width:100vw;height:100vh;display:flex;flex-direction:column;
+  background:radial-gradient(ellipse 130% 100% at 50% 55%,#111d13 0%,#06100a 100%);
+  position:relative;
+}
+#room::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.3;
+  background:repeating-linear-gradient(60deg,transparent,transparent 44px,rgba(255,255,255,.018) 44px,rgba(255,255,255,.018) 45px),
+             repeating-linear-gradient(-60deg,transparent,transparent 44px,rgba(255,255,255,.018) 44px,rgba(255,255,255,.018) 45px);}
+
+/* ─── HEADER ─── */
+#hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 16px;flex-shrink:0;z-index:20;position:relative;
+  background:linear-gradient(180deg,rgba(0,0,0,.65) 0%,rgba(0,0,0,.25) 100%);
+  border-bottom:1px solid rgba(201,168,76,.2);
+}
+.flag-sm{width:46px;height:29px;display:flex;border-radius:3px;overflow:hidden;border:1px solid var(--gd);box-shadow:0 2px 8px rgba(0,0,0,.5);}
+.fb{background:var(--bgt);flex:1;}.fw{background:#eee;flex:1;display:flex;align-items:center;justify-content:center;}
+.fw svg{width:17px;height:17px;}
+#hdr h1{
+  font-family:'Pacifico',cursive;
+  font-size:1.5rem;
+  color:#7dd8f8;
+  letter-spacing:3px;
+  text-shadow:0 0 18px rgba(100,210,255,.55), 0 2px 8px rgba(0,80,140,.6);
+  line-height:1;
+}
+#hdr h2{font-family:'Cinzel',serif;font-size:.5rem;color:var(--dim);letter-spacing:3px;margin-top:2px;}
+#hdr-l{display:flex;align-items:center;gap:10px;}
+#hdr-r{display:flex;align-items:center;gap:8px;}
+.hbtn{font-family:'Cinzel',serif;font-size:.62rem;letter-spacing:1px;padding:5px 11px;
+  background:rgba(201,168,76,.1);border:1px solid var(--gd);color:var(--gold);
+  border-radius:3px;cursor:pointer;transition:.2s;}
+.hbtn:hover{background:var(--gd);}
+#sbtn{background:none;border:none;color:var(--gold);font-size:1rem;cursor:pointer;padding:2px 5px;}
+
+/* ─── MAIN ─── */
+#main{flex:1;display:flex;min-height:0;position:relative;}
+
+/* ─── TABLE AREA ─── */
+#tarea{flex:1;display:flex;align-items:center;justify-content:center;position:relative;min-height:0;overflow:visible;}
+
+/* ─── TABLE WRAP — 8-max with room for top seat ─── */
+#twrap{
+  position:relative;
+  width:min(900px,96vw);
+  /* Extra vertical space: padding-top pushes table down so top seat has room */
+  height:min(560px,62vw);
+  padding-top:48px;      /* space for top seat box above rail */
+  padding-bottom:8px;
+  box-sizing:border-box;
+}
+
+/* SVG fills the wrap */
+#tsvg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
+
+/* ════ SEATS — WPT Gold 8-max style ════ */
+.seat{
+  position:absolute;transform:translate(-50%,-50%);
+  width:140px;z-index:15;
+}
+.seat:hover{z-index:150;}
+
+/* Main seat panel — dark pill matching WPT Gold aesthetic */
+.sbox{
+  width:100%;
+  background:linear-gradient(160deg,#0d1f14 0%,#081208 100%);
+  border:1.5px solid rgba(255,255,255,.10);
+  border-radius:36px;
+  padding:5px 10px 5px 5px;
+  display:flex;flex-direction:row;align-items:center;gap:7px;
+  position:relative;
+  box-shadow:
+    0 6px 24px rgba(0,0,0,.8),
+    0 1px 0 rgba(255,255,255,.05) inset,
+    0 -1px 0 rgba(0,0,0,.4) inset;
+  transition:border-color .18s,box-shadow .18s;
+  cursor:default;
+}
+/* YOU — cyan accent */
+.sbox.you{
+  border-color:rgba(80,200,255,.5) !important;
+  background:linear-gradient(160deg,#0a1f22 0%,#061318 100%);
+  box-shadow:0 0 20px rgba(80,200,255,.18),0 6px 24px rgba(0,0,0,.8);
+}
+/* Active turn — bright gold pulse */
+.seat.active .sbox{
+  border-color:rgba(255,200,40,.85);
+  box-shadow:0 0 0 3px rgba(255,200,40,.15),0 6px 24px rgba(0,0,0,.8);
+  animation:activePulse 1.4s ease-in-out infinite;
+}
+@keyframes activePulse{
+  0%,100%{box-shadow:0 0 0 3px rgba(255,200,40,.12),0 6px 24px rgba(0,0,0,.8);}
+  50%   {box-shadow:0 0 0 6px rgba(255,200,40,.22),0 6px 24px rgba(0,0,0,.8);}
+}
+.seat.folded .sbox{opacity:.28;filter:grayscale(1);}
+.seat.winner .sbox{
+  border-color:rgba(80,220,120,.9);
+  box-shadow:0 0 28px rgba(80,220,120,.4),0 6px 24px rgba(0,0,0,.8);
+}
+.seat.bust .sbox{opacity:.14;filter:grayscale(1);}
+
+/* Avatar circle — WPT Gold style: coloured ring shows status */
+.savatar{
+  width:40px;height:40px;border-radius:50%;
+  background:radial-gradient(circle at 38% 35%,#2a5c38,#0f2818);
+  border:2.5px solid rgba(255,255,255,.15);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.2rem;flex-shrink:0;
+  box-shadow:0 0 0 1px rgba(0,0,0,.6);
+  transition:border-color .18s;
+}
+.seat.active .savatar{border-color:#ffc828;}
+.seat.human .savatar{border-color:rgba(80,200,255,.6);}
+.seat.winner .savatar{border-color:#50dc78;}
+
+/* Text info: name top, stack bottom */
+.sinfo{
+  display:flex;flex-direction:column;flex:1;min-width:0;gap:2px;
+}
+.sname{
+  font-family:'Cinzel',serif;font-size:.50rem;font-weight:600;
+  color:rgba(235,235,235,.9);letter-spacing:.4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  line-height:1.2;
+}
+.seat.human .sname em{color:#50c8ff;font-style:normal;font-weight:700;}
+.sstack{
+  font-family:'Cinzel',serif;font-size:.60rem;font-weight:700;
+  color:#f5c842;letter-spacing:.3px;line-height:1.1;
+}
+
+/* Face-down hole cards (bots) */
+.shole{display:flex;gap:2px;margin-top:1px;}
+
+/* Role/status badge — SB · BB · ALL IN · FOLD */
+.spip{
+  position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);
+  font-family:'Cinzel',serif;font-size:.38rem;font-weight:700;
+  color:#fff;padding:1px 6px;border-radius:4px;
+  white-space:nowrap;z-index:6;letter-spacing:.5px;
+  box-shadow:0 1px 4px rgba(0,0,0,.6);
+}
+.spip.allin{background:linear-gradient(90deg,#6b21a8,#9333ea);}
+.spip.fold {background:rgba(40,40,40,.95);color:rgba(255,255,255,.4);}
+.spip.sbl  {background:linear-gradient(90deg,#166534,#16a34a);color:#bbf7d0;}
+
+/* ═══ WPT Gold Dealer Button ═══
+   White disc, bold D, slight 3-D bevel — matches WPT exactly */
+.dbtn{
+  position:absolute;top:-12px;right:-8px;
+  width:22px;height:22px;border-radius:50%;
+  background:radial-gradient(circle at 38% 32%,#ffffff 0%,#e0e0e0 55%,#c0c0c0 100%);
+  border:2px solid #888;
+  color:#111;font-size:.60rem;font-weight:900;
+  font-family:'Arial Black','Arial',sans-serif;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:
+    0 3px 10px rgba(0,0,0,.75),
+    inset 0 1px 2px rgba(255,255,255,.9),
+    inset 0 -1px 2px rgba(0,0,0,.2);
+  letter-spacing:-1px;line-height:1;z-index:25;
+}
+
+/* Bet amount chip — floats above seat toward pot, WPT chip style */
+.sbet{
+  position:absolute;top:-26px;left:50%;transform:translateX(-50%);
+  background:radial-gradient(circle at 40% 35%,#1a7a28,#0c4416);
+  border:1.5px solid rgba(100,220,80,.5);
+  color:#d4f5c0;font-family:'Cinzel',serif;
+  font-size:.48rem;font-weight:700;letter-spacing:.3px;
+  padding:2px 8px;border-radius:12px;white-space:nowrap;
+  opacity:0;transition:opacity .18s;pointer-events:none;
+  box-shadow:0 2px 10px rgba(0,0,0,.65);
+}
+.sbet.show{opacity:1;}
+
+/* Countdown bar — slim line at bottom of pill */
+.stimer{
+  position:absolute;bottom:0;left:8px;right:8px;height:2.5px;
+  border-radius:0 0 36px 36px;overflow:hidden;
+}
+.stimerbar{
+  height:100%;width:100%;
+  background:linear-gradient(90deg,#22c55e,#eab308,#ef4444);
+  background-size:300% 100%;background-position:0% 0%;
+  transition:width .1s linear;
+}
+
+/* ─── CARDS ─── */
+.card{
+  border-radius:3px;background:#fff;border:1px solid #ccc;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-weight:800;line-height:1;flex-shrink:0;
+  box-shadow:0 2px 5px rgba(0,0,0,.4);
+}
+.card.red{color:#c8102e;}.card.black{color:#111;}
+.card.back{background:linear-gradient(135deg,var(--bgt),#0055bb);border:1px solid var(--gd);}
+.card.back::after{content:'🇬🇹';font-size:.65rem;}
+.card.sm{width:21px;height:30px;font-size:.46rem;}
+.card.sm .cr{font-size:.44rem;}.card.sm .cs{font-size:.52rem;}
+.card.md{width:38px;height:54px;font-size:.85rem;}
+.card.md .cr{font-size:.78rem;}.card.md .cs{font-size:.9rem;}
+.card.lg{width:54px;height:76px;font-size:1.1rem;}
+.card.lg .cr{font-size:1rem;}.card.lg .cs{font-size:1.15rem;}
+.card.ph{background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.1);box-shadow:none;}
+@keyframes flip{from{transform:rotateY(90deg) scale(.7);opacity:0;}to{transform:rotateY(0) scale(1);opacity:1;}}
+.card.deal{animation:flip .2s ease-out;}
+
+/* ─── CENTER TABLE ─── */
+#cinfo{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  z-index:10;pointer-events:none;
+}
+#felt-wm{opacity:.14;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.flag-wm{width:60px;height:38px;display:flex;border-radius:3px;overflow:hidden;}
+.flag-wm .fb{background:var(--bgt);flex:1;}
+.flag-wm .fw{background:#eee;flex:1;display:flex;align-items:center;justify-content:center;}
+#wm-txt{font-family:'Cinzel Decorative',serif;font-size:.42rem;color:var(--gold);letter-spacing:2px;}
+#pot-wrap{display:flex;flex-direction:column;align-items:center;gap:1px;pointer-events:none;}
+#pot-lbl{font-family:'Cinzel',serif;font-size:.55rem;color:var(--dim);letter-spacing:2px;}
+#pot-amt{font-family:'Cinzel Decorative',serif;font-size:1rem;color:var(--gl);text-shadow:0 0 12px rgba(201,168,76,.35);}
+#comm-row{display:flex;gap:4px;align-items:center;}
+#street-lbl{font-family:'Cinzel',serif;font-size:.52rem;color:var(--dim);letter-spacing:3px;}
+
+/* ─── PLAYER CARD STRIP (between table and action bar) ─── */
+#player-strip{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:6px 0 4px;
+  background:linear-gradient(180deg,rgba(0,0,0,.0),rgba(0,0,0,.45));
+  flex-shrink:0;
+}
+#phole{display:flex;gap:10px;}
+#phandname{
+  font-family:'Cinzel',serif;font-size:.6rem;color:var(--gold);letter-spacing:2px;
+  background:rgba(0,0,0,.6);padding:2px 10px;border-radius:3px;
+  opacity:0;transition:opacity .3s;
+}
+#phandname.show{opacity:1;}
+
+/* ─── PLAYER STATS PANEL (hover on player-strip) ─── */
+#player-strip{position:relative;}
+#my-stats{
+  display:none;
+  position:absolute;
+  bottom:calc(100% + 6px);
+  left:50%;transform:translateX(-50%);
+  background:rgba(5,15,8,.97);
+  border:1px solid rgba(125,216,248,.35);
+  border-radius:8px;padding:9px 12px;
+  width:170px;z-index:300;
+  pointer-events:none;
+  box-shadow:0 4px 24px rgba(0,0,0,.85);
+}
+#player-strip:hover #my-stats{display:block;}
+
+/* ─── ACTION BAR ─── */
+/* ════ ACTION BAR — WPT Gold style ════ */
+#abar{
+  flex-shrink:0;position:relative;z-index:20;
+  background:linear-gradient(0deg,rgba(0,0,0,.88) 0%,rgba(5,12,8,.75) 100%);
+  border-top:1px solid rgba(255,255,255,.07);
+  padding:10px 16px 12px;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  transition:opacity .2s;
+}
+#abar.off{opacity:0;pointer-events:none;visibility:hidden;}
+
+/* Countdown timer bar — very slim, sits at very top of abar */
+#gtimer{position:absolute;top:0;left:0;right:0;height:2px;background:rgba(255,255,255,.05);}
+#gtimerbar{height:100%;background:linear-gradient(90deg,#22c55e,#eab308,#ef4444);width:100%;background-size:300%;transition:width .1s linear;}
+
+/* Stack display — small, above buttons */
+#myinfo{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  width:100%;
+}
+#mychips{
+  font-family:'Cinzel',serif;font-size:.62rem;color:rgba(255,255,255,.55);
+  letter-spacing:.5px;
+}
+#mychips em{font-style:normal;color:#f5c842;}
+#trd{font-family:'Cinzel',serif;font-size:.62rem;color:rgba(255,255,255,.35);letter-spacing:.5px;}
+
+/* ── WPT Gold button row ── */
+#btnrow{
+  display:flex;align-items:stretch;gap:8px;width:100%;max-width:520px;
+}
+
+/* Base button — tall pill, WPT proportions */
+.abtn{
+  font-family:'Cinzel',serif;font-size:.72rem;font-weight:700;letter-spacing:1.5px;
+  padding:0 22px;height:46px;border:none;border-radius:6px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+  gap:1px;transition:filter .12s,transform .1s;flex:1;min-width:0;
+  box-shadow:0 4px 16px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.12);
+  position:relative;overflow:hidden;
+}
+.abtn::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(255,255,255,.10) 0%,rgba(255,255,255,0) 55%);
+  pointer-events:none;
+}
+.abtn:hover:not(:disabled){filter:brightness(1.15);transform:translateY(-1px);}
+.abtn:active:not(:disabled){transform:translateY(0);filter:brightness(.95);}
+.abtn:disabled{opacity:.2;cursor:not-allowed;}
+
+/* FOLD — dark red, WPT style */
+#bfold{
+  background:linear-gradient(180deg,#5c1a1a,#3d0d0d);
+  color:#ff6b6b;
+  border-top:1px solid rgba(220,60,60,.4);
+}
+#bfold:hover:not(:disabled){background:linear-gradient(180deg,#7a2020,#5c1010);}
+
+/* CHECK — teal/green */
+#bcheck{
+  background:linear-gradient(180deg,#0e4d2e,#083320);
+  color:#4ade80;
+  border-top:1px solid rgba(74,222,128,.25);
+}
+#bcheck:hover:not(:disabled){background:linear-gradient(180deg,#166534,#0e4d2e);}
+
+/* CALL — WPT blue */
+#bcall{
+  background:linear-gradient(180deg,#0d3a6e,#081e3f);
+  color:#60a5fa;
+  border-top:1px solid rgba(96,165,250,.25);
+}
+#bcall:hover:not(:disabled){background:linear-gradient(180deg,#1e4d8c,#0d3a6e);}
+
+/* BET/RAISE — WPT gold/orange */
+#braise,#bbet{
+  background:linear-gradient(180deg,#7a4a08,#4d2e04);
+  color:#fbbf24;
+  border-top:1px solid rgba(251,191,36,.25);
+}
+#braise:hover:not(:disabled),#bbet:hover:not(:disabled){
+  background:linear-gradient(180deg,#9a5c0a,#7a4a08);
+}
+
+/* ALL-IN — purple */
+#ballin{
+  background:linear-gradient(180deg,#5b21b6,#3b0764);
+  color:#c4b5fd;
+  border-top:1px solid rgba(196,181,253,.25);
+}
+#ballin:hover:not(:disabled){background:linear-gradient(180deg,#7c3aed,#5b21b6);}
+
+/* Sub-label under button text (e.g. amount on CALL) */
+.abtn-sub{
+  font-size:.52rem;letter-spacing:.5px;opacity:.75;font-weight:400;line-height:1;
+}
+
+/* ── Raise sizing row — appears above main buttons ── */
+#rrow{
+  display:none;align-items:center;gap:6px;
+  width:100%;max-width:520px;
+}
+#rrow.open{display:flex;}
+
+/* Preset fraction chips — pill buttons */
+.rstep{
+  height:30px;border-radius:5px;font-size:.62rem;font-weight:700;letter-spacing:.5px;
+  font-family:'Cinzel',serif;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+  color:rgba(255,255,255,.6);cursor:pointer;padding:0 10px;
+  display:flex;align-items:center;justify-content:center;
+  transition:.12s;white-space:nowrap;flex-shrink:0;
+}
+.rstep:hover{background:rgba(251,191,36,.18);border-color:rgba(251,191,36,.4);color:#fbbf24;}
+.rstep:active{transform:scale(.93);}
+
+/* −/+ nudge buttons */
+.rstep.rnudge{
+  width:30px;padding:0;font-size:1rem;
+  background:rgba(255,255,255,.06);
+}
+
+/* Amount display */
+#ramt{
+  font-family:'Cinzel',serif;font-size:.78rem;font-weight:700;
+  color:#fbbf24;flex:1;text-align:center;letter-spacing:.5px;
+}
+
+/* Confirm bet button */
+#rbetbtn{
+  height:30px;padding:0 14px;border-radius:5px;
+  background:linear-gradient(180deg,#9a5c0a,#6b3f05);
+  border:1px solid rgba(251,191,36,.35);
+  color:#fbbf24;font-family:'Cinzel',serif;font-size:.62rem;
+  font-weight:700;letter-spacing:1px;cursor:pointer;
+  transition:.12s;white-space:nowrap;flex-shrink:0;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.1);
+}
+#rbetbtn:hover{background:linear-gradient(180deg,#b86c0c,#9a5c0a);}
+
+/* ─── STAT TOOLTIP ─── */
+.stat-tip{
+  display:none;
+  position:absolute;
+  background:rgba(4,10,6,.97);
+  border:1px solid rgba(201,168,76,.28);
+  border-radius:5px;
+  padding:4px 5px;
+  width:96px;
+  z-index:300;
+  pointer-events:none;
+  box-shadow:0 2px 12px rgba(0,0,0,.9);
+  bottom:calc(100% + 5px);
+  left:50%;
+  transform:translateX(-50%);
+}
+/* Flip below for top seats (3,4 near dealer chair) */
+.stat-tip.tip-below{
+  bottom:auto;
+  top:calc(100% + 6px);
+}
+/* Left-edge seats: anchor to left side of seat so tooltip goes rightward */
+.stat-tip.tip-right{
+  left:0;
+  transform:none;
+}
+/* Right-edge seats: anchor to right side so tooltip goes leftward */
+.stat-tip.tip-left{
+  left:auto;
+  right:0;
+  transform:none;
+}
+.seat:hover .stat-tip{display:block;}
+.stat-tip-name{
+  font-family:'Cinzel',serif;font-size:.44rem;color:#e8c96a;
+  letter-spacing:.3px;margin-bottom:3px;text-align:center;
+  border-bottom:1px solid rgba(201,168,76,.15);padding-bottom:2px;
+}
+.stat-row{
+  display:flex;align-items:center;justify-content:space-between;
+  margin:1.5px 0;gap:3px;
+}
+.stat-lbl{font-family:'Cinzel',serif;font-size:.38rem;color:#666;letter-spacing:.2px;white-space:nowrap;}
+.stat-val{font-family:'Cinzel',serif;font-size:.44rem;font-weight:700;color:#e8c96a;min-width:20px;text-align:right;}
+.stat-bar-wrap{flex:1;height:2px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;}
+.stat-bar{height:100%;border-radius:2px;transition:width .3s;}
+.stat-bar.vpip{background:linear-gradient(90deg,#3498db,#5dade2);}
+.stat-bar.pfr {background:linear-gradient(90deg,#e67e22,#f5b041);}
+.stat-bar.b3  {background:linear-gradient(90deg,#8e44ad,#bb8fce);}
+.stat-bar.af  {background:linear-gradient(90deg,#27ae60,#58d68d);}
+.stat-hands{font-family:'Cinzel',serif;font-size:.36rem;color:#3a3a3a;text-align:center;margin-top:2px;}
+
+
+/* The chip circle — small, hugs the seat */
+
+/* Dealer chip — GT flag */
+.ft-dealer .ft-dealer .ft-dealer .ft-dealer .ftf-w svg{width:11px;height:11px;}
+
+/* SB chip */
+/* BB chip */
+
+/* Tiny label next to chip */
+
+/* ─── WAITING ROOM ─── */
+#wroom{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);
+  z-index:300;align-items:center;justify-content:center;
+}
+#wroom.on{display:flex;}
+#wrc{
+  background:linear-gradient(160deg,#0a1e0d,#122b18);
+  border:2px solid rgba(201,168,76,.4);border-radius:14px;
+  padding:28px 32px;width:460px;max-width:95vw;
+  box-shadow:0 0 80px rgba(0,0,0,.95);
+  display:flex;flex-direction:column;align-items:center;gap:14px;
+}
+#wr-flag{
+  width:56px;height:36px;display:flex;border-radius:4px;overflow:hidden;
+  border:1px solid rgba(201,168,76,.4);box-shadow:0 2px 10px rgba(0,0,0,.5);
+}
+#wr-flag .fb{background:#003f8a;flex:1;}
+#wr-flag .fw{background:#f0f0f0;flex:1;display:flex;align-items:center;justify-content:center;}
+#wr-title{font-family:'Cinzel Decorative',serif;font-size:1rem;color:#e8c96a;letter-spacing:2px;}
+#wr-sub{font-family:'Cinzel',serif;font-size:.65rem;color:#a07840;letter-spacing:2px;}
+
+/* Seat grid */
+#wr-seats{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%;
+}
+.wr-seat{
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+  border-radius:8px;padding:8px 4px;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  transition:.2s;
+}
+.wr-seat.taken{border-color:rgba(201,168,76,.4);background:rgba(201,168,76,.07);}
+.wr-seat.me{border-color:#2ecc71;background:rgba(46,204,113,.08);}
+.wr-seat .ws-avatar{font-size:1.1rem;line-height:1;}
+.wr-seat .ws-name{font-family:'Cinzel',serif;font-size:.45rem;color:#aaa;text-align:center;letter-spacing:.3px;}
+.wr-seat.me .ws-name{color:#2ecc71;}
+.wr-seat .ws-status{font-size:.55rem;color:#555;}
+.wr-seat.taken .ws-status{color:#c9a84c;}
+.wr-seat.me .ws-status{color:#2ecc71;}
+
+/* Countdown ring */
+#wr-countdown{display:flex;flex-direction:column;align-items:center;gap:6px;}
+#wr-cd-ring{position:relative;width:64px;height:64px;display:flex;align-items:center;justify-content:center;}
+#wr-cd-num{
+  position:absolute;font-family:'Cinzel',serif;font-size:.75rem;
+  color:#e8c96a;font-weight:700;letter-spacing:.5px;
+}
+#wr-cd-label{font-family:'Cinzel',serif;font-size:.52rem;color:#7a5a18;letter-spacing:1px;}
+#wr-actions{display:flex;flex-direction:column;gap:6px;width:100%;}
+#wr-share-note{font-family:'Cinzel',serif;font-size:.52rem;color:#2ecc71;letter-spacing:.5px;min-height:16px;}
+
+
+.dbtn 
+
+
+
+/* Log */
+#logline{
+  font-family:'Cinzel',serif;font-size:.54rem;color:var(--dim);
+  letter-spacing:.8px;max-width:320px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;text-align:center;flex:1;
+}
+
+/* ─── CHAT — floating overlay, doesn't crowd the table ─── */
+#chat-toggle{
+  position:fixed;bottom:14px;right:14px;
+  background:rgba(0,0,0,.75);border:1px solid rgba(201,168,76,.35);
+  border-radius:50%;width:38px;height:38px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;z-index:500;font-size:1rem;
+  box-shadow:0 2px 12px rgba(0,0,0,.6);
+  transition:background .2s;
+}
+#chat-toggle:hover{background:rgba(201,168,76,.2);}
+#chat-badge{
+  position:absolute;top:-3px;right:-3px;
+  background:#e63946;color:#fff;
+  font-size:.45rem;font-family:'Cinzel',serif;
+  border-radius:50%;width:14px;height:14px;
+  display:none;align-items:center;justify-content:center;
+}
+#chat-badge.on{display:flex;}
+#chat{
+  position:fixed;bottom:60px;right:14px;
+  width:220px;height:300px;
+  background:rgba(8,18,10,.96);border:1px solid rgba(201,168,76,.22);
+  border-radius:10px;
+  display:none;flex-direction:column;z-index:499;
+  box-shadow:0 6px 32px rgba(0,0,0,.8);
+  overflow:hidden;
+}
+#chat.open{display:flex;}
+#ctitle{
+  font-family:'Cinzel',serif;font-size:.58rem;color:var(--gold);
+  letter-spacing:2px;padding:7px 10px;
+  border-bottom:1px solid rgba(201,168,76,.12);
+  display:flex;justify-content:space-between;align-items:center;
+}
+#ctitle-close{cursor:pointer;opacity:.6;font-size:.7rem;}
+#ctitle-close:hover{opacity:1;}
+#cmsgs{flex:1;overflow-y:auto;padding:5px 8px;display:flex;flex-direction:column;gap:3px;min-height:0;}
+#cmsgs::-webkit-scrollbar{width:2px;}
+#cmsgs::-webkit-scrollbar-thumb{background:var(--gd);}
+.cm{font-size:.58rem;line-height:1.45;word-break:break-word;}
+.cm.sys{color:var(--gold);font-style:italic;font-size:.56rem;}
+.cm.me{color:#7dd3fc;}.cm.bot{color:#ccc;}
+.cm .cn{font-weight:700;font-family:'Cinzel',serif;}
+#crow{display:flex;border-top:1px solid rgba(201,168,76,.12);flex-shrink:0;}
+#cin{flex:1;background:none;border:none;color:var(--tx);font-size:.6rem;padding:6px 7px;outline:none;font-family:'Lato',sans-serif;}
+#cgo{background:none;border:none;border-left:1px solid rgba(201,168,76,.12);color:var(--gold);padding:4px 7px;cursor:pointer;font-size:.8rem;}
+
+/* ─── OVERLAY ─── */
+#ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:100;align-items:center;justify-content:center;}
+#ov.on{display:flex;}
+#ovc{
+  background:linear-gradient(135deg,#0d2515,#1a4a2a);
+  border:2px solid var(--gd);border-radius:12px;
+  padding:26px 36px;min-width:290px;max-width:430px;text-align:center;
+  box-shadow:0 0 70px rgba(0,0,0,.9);
+}
+#ovt{font-family:'Cinzel Decorative',serif;font-size:1.25rem;color:var(--gl);margin-bottom:8px;}
+#ovb{font-family:'Cinzel',serif;font-size:.76rem;color:var(--dim);line-height:1.85;margin-bottom:16px;}
+#ovb b{color:var(--tx);}
+#ovn{font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:2px;
+  padding:9px 26px;background:var(--gd);border:1px solid var(--gold);
+  color:var(--gl);border-radius:5px;cursor:pointer;}
+#ovn:hover{background:var(--gold);}
+
+/* ─── BUY-IN ─── */
+#bm{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:200;align-items:center;justify-content:center;}
+#bm.on{display:flex;}
+#bmc{
+  background:linear-gradient(135deg,#09160b,#1a4a2a);
+  border:2px solid var(--gd);border-radius:10px;
+  padding:26px 34px;min-width:270px;text-align:center;
+}
+#bmtitle{font-family:'Cinzel Decorative',serif;font-size:.95rem;color:var(--gl);margin-bottom:14px;}
+.bmo{
+  display:block;width:100%;font-family:'Cinzel',serif;font-size:.76rem;
+  padding:9px;margin:5px 0;background:rgba(0,0,0,.42);
+  border:1px solid var(--gd);color:var(--gold);
+  border-radius:4px;cursor:pointer;letter-spacing:1px;transition:.2s;
+}
+.bmo:hover{background:var(--gd);}
+.bmo.cx{color:var(--red);border-color:rgba(200,50,50,.35);}
+
+/* ─── AUTO DEAL TOAST ─── */
+#adt{
+  position:fixed;bottom:64px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.82);border:1px solid var(--gd);
+  border-radius:20px;padding:5px 16px;
+  font-family:'Cinzel',serif;font-size:.62rem;color:var(--dim);letter-spacing:1px;
+  z-index:50;opacity:0;transition:opacity .3s;pointer-events:none;
+}
+#adt.show{opacity:1;}
+</style>
+</head>
+<body>
+<div id="room">
+
+<!-- HEADER -->
+<div id="hdr">
+  <div id="hdr-l">
+    <div class="flag-sm">
+      <div class="fb"></div>
+      <div class="fw">
+        <svg viewBox="0 0 40 40" fill="none">
+          <ellipse cx="20" cy="15" rx="6" ry="8" fill="#2e7d32"/>
+          <ellipse cx="20" cy="13" rx="4" ry="5" fill="#43a047"/>
+          <circle cx="20" cy="9" r="3" fill="#1b5e20"/>
+          <ellipse cx="20" cy="25" rx="3" ry="7" fill="#1565c0"/>
+          <circle cx="21.5" cy="8" r="1" fill="#fff"/>
+          <path d="M14 17 Q9 22 11 28 Q15 23 20 21Z" fill="#388e3c"/>
+          <path d="M26 17 Q31 22 29 28 Q25 23 20 21Z" fill="#388e3c"/>
+        </svg>
+      </div>
+      <div class="fb"></div>
+    </div>
+    <div><h1>POKER</h1><h2>TEXAS HOLD'EM</h2></div>
+  </div>
+  <div id="hdr-r">
+    <button class="hbtn" onclick="showBuyIn()">💰 BUY IN</button>
+    <button id="sbtn" onclick="toggleSnd()">🔊</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- TABLE AREA -->
+  <div id="tarea">
+    <div id="twrap">
+
+      <!-- SVG TABLE -->
+      <svg id="tsvg" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <!-- Rail gradient: deep walnut brown like WPT tables -->
+          <radialGradient id="rgRail" cx="50%" cy="45%" r="55%">
+            <stop offset="0%" stop-color="#5c3010"/>
+            <stop offset="60%" stop-color="#3a1c08"/>
+            <stop offset="100%" stop-color="#1e0d03"/>
+          </radialGradient>
+          <!-- Felt: WPT Gold uses a deep forest-green with slight blue tint -->
+          <radialGradient id="rgFelt" cx="50%" cy="42%" r="60%">
+            <stop offset="0%"   stop-color="#2d6b4a"/>
+            <stop offset="45%"  stop-color="#1e5238"/>
+            <stop offset="100%" stop-color="#0f2e1e"/>
+          </radialGradient>
+          <!-- Subtle specular shine on felt center -->
+          <radialGradient id="rgShine" cx="50%" cy="35%" r="50%">
+            <stop offset="0%"   stop-color="rgba(255,255,255,.04)"/>
+            <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+          </radialGradient>
+          <!-- Drop shadow under table -->
+          <filter id="fShadow" x="-8%" y="-8%" width="116%" height="124%">
+            <feDropShadow dx="0" dy="14" stdDeviation="28" flood-color="#000" flood-opacity=".8"/>
+          </filter>
+          <!-- Glow on rail edge -->
+          <filter id="fRailGlow" x="-4%" y="-4%" width="108%" height="116%">
+            <feDropShadow dx="0" dy="0" stdDeviation="10" flood-color="#c9a84c" flood-opacity=".18"/>
+          </filter>
+          <!-- Chip gradients -->
+          <linearGradient id="cgW" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f5f5f5"/><stop offset="100%" stop-color="#bbb"/></linearGradient>
+          <linearGradient id="cgR" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e53935"/><stop offset="100%" stop-color="#8b1a1a"/></linearGradient>
+          <linearGradient id="cgB" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#1e88e5"/><stop offset="100%" stop-color="#0d47a1"/></linearGradient>
+          <linearGradient id="cgG" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#43a047"/><stop offset="100%" stop-color="#1b5e20"/></linearGradient>
+          <linearGradient id="cgK" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#616161"/><stop offset="100%" stop-color="#1a1a1a"/></linearGradient>
+        </defs>
+
+        <!-- ── Drop shadow beneath table ── -->
+        <ellipse cx="450" cy="268" rx="422" ry="220" fill="#000" opacity=".6" filter="url(#fShadow)"/>
+
+        <!-- ── RAIL (outer walnut band) ── -->
+        <ellipse cx="450" cy="252" rx="422" ry="218" fill="url(#rgRail)" filter="url(#fRailGlow)"/>
+
+        <!-- Rail outer highlight strip (top light catchg) -->
+        <ellipse cx="450" cy="190" rx="340" ry="68" fill="none" stroke="rgba(255,230,160,.08)" stroke-width="22"/>
+
+        <!-- Gold piping outer edge -->
+        <ellipse cx="450" cy="252" rx="410" ry="206" fill="none" stroke="#c9a84c" stroke-width="1.8" stroke-opacity=".65"/>
+        <!-- Gold piping inner edge -->
+        <ellipse cx="450" cy="252" rx="396" ry="193" fill="none" stroke="#c9a84c" stroke-width=".8" stroke-opacity=".30"/>
+
+        <!-- ── FELT SURFACE ── -->
+        <ellipse cx="450" cy="252" rx="392" ry="189" fill="url(#rgFelt)"/>
+        <!-- Felt specular shine -->
+        <ellipse cx="450" cy="220" rx="300" ry="120" fill="url(#rgShine)"/>
+        <!-- Subtle inner felt ring decoration (WPT has a thin inner ring) -->
+        <ellipse cx="450" cy="252" rx="340" ry="155" fill="none" stroke="rgba(255,255,255,.04)" stroke-width="1.2"/>
+
+        <!-- ═══ FELT LOGO WATERMARK ═══ -->
+        <g opacity="0.08" transform="translate(414,202)">
+          <rect width="72" height="46" rx="3" fill="#003f8a"/>
+          <rect x="24" width="24" height="46" fill="#eee"/>
+          <ellipse cx="36" cy="19" rx="5.5" ry="7" fill="#2e7d32"/>
+          <circle cx="36" cy="12" r="3" fill="#1b5e20"/>
+          <ellipse cx="36" cy="30" rx="3" ry="7" fill="#1565c0"/>
+          <text x="36" y="58" text-anchor="middle" font-family="serif" font-size="5" fill="#c9a84c" letter-spacing="2">GUATEMALA</text>
+        </g>
+
+        <!-- chip tray removed for uniform 8-seat layout -->
+      </svg>
+
+      <!-- CENTER INFO OVERLAY -->
+      <div id="cinfo">
+        <div id="felt-wm">
+          <div class="flag-wm">
+            <div class="fb"></div>
+            <div class="fw">
+              <svg viewBox="0 0 40 40" fill="none" width="20" height="20">
+                <ellipse cx="20" cy="15" rx="6" ry="8" fill="#2e7d32"/>
+                <circle cx="20" cy="9" r="3" fill="#1b5e20"/>
+                <ellipse cx="20" cy="25" rx="3" ry="7" fill="#1565c0"/>
+              </svg>
+            </div>
+            <div class="fb"></div>
+          </div>
+          <div id="wm-txt">GUATEMALA</div>
+        </div>
+        <div id="pot-wrap">
+          <div id="pot-lbl">MAIN POT</div>
+          <div id="pot-amt">—</div>
+        </div>
+        <div id="comm-row"></div>
+        <div id="street-lbl"></div>
+      </div>
+
+      <!-- SEATS injected here by JS -->
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- CHAT TOGGLE BUTTON -->
+<div id="chat-toggle" onclick="toggleChat()" title="Chat">
+  💬
+  <div id="chat-badge"></div>
+</div>
+
+<!-- CHAT PANEL (floating overlay) -->
+<div id="chat">
+  <div id="ctitle">💬 CHAT <span id="ctitle-close" onclick="toggleChat()">✕</span></div>
+  <div id="cmsgs"></div>
+  <div id="crow">
+    <input id="cin" type="text" placeholder="Say something…" maxlength="80" onkeydown="if(event.key==='Enter')sendChat()"/>
+    <button id="cgo" onclick="sendChat()">➤</button>
+  </div>
+</div>
+
+<!-- PLAYER CARD STRIP -->
+<div id="player-strip">
+  <div id="my-stats"></div>
+  <div id="phole"></div>
+  <div id="phandname"></div>
+</div>
+
+<!-- ACTION BAR — WPT Gold layout -->
+<div id="abar" class="off">
+  <div id="gtimer"><div id="gtimerbar"></div></div>
+
+  <!-- Stack + pot-odds info -->
+  <div id="myinfo">
+    <span id="mychips"><em>STACK </em>0</span>
+    <span id="trd"></span>
+  </div>
+
+  <!-- Raise sizing row (hidden until BET/RAISE clicked) -->
+  <div id="rrow">
+    <button class="rstep rnudge" onclick="stepRaise('down')" title="−1 BB">−</button>
+    <button class="rstep" onclick="setRaisePre(0.33)" title="⅓ Pot">⅓ POT</button>
+    <button class="rstep" onclick="setRaisePre(0.5)"  title="½ Pot">½ POT</button>
+    <button class="rstep" onclick="setRaisePre(0.75)" title="¾ Pot">¾ POT</button>
+    <button class="rstep" onclick="setRaisePre(1)"    title="Pot">POT</button>
+    <span id="ramt">200</span>
+    <button class="rstep rnudge" onclick="stepRaise('up')" title="+1 BB">+</button>
+    <button id="rbetbtn" onclick="confirmRaise()">CONFIRM</button>
+  </div>
+
+  <!-- Hidden log line (used by setLog) -->
+  <div id="logline" style="display:none;"></div>
+
+  <!-- Main 3-button WPT row -->
+  <div id="btnrow">
+    <button class="abtn" id="bfold"  onclick="pAct('fold')">FOLD</button>
+    <button class="abtn" id="bcheck" onclick="pAct('check')">CHECK</button>
+    <button class="abtn" id="bcall"  onclick="pAct('call')">
+      CALL<div class="abtn-sub" id="bcall-amt"></div>
+    </button>
+    <button class="abtn" id="bbet"   onclick="togRaise()">BET</button>
+    <button class="abtn" id="braise" onclick="togRaise()">
+      RAISE<div class="abtn-sub" id="braise-sub">▲</div>
+    </button>
+    <button class="abtn" id="ballin" onclick="pAct('allin')">ALL IN</button>
+  </div>
+</div>
+
+</div><!-- /room -->
+
+<!-- OVERLAY -->
+<div id="ov">
+  <div id="ovc">
+    <div id="ovt"></div>
+    <div id="ovb"></div>
+    <button id="ovn" onclick="closeOv()">NEXT HAND ▶</button>
+  </div>
+</div>
+
+<!-- BUY-IN -->
+<div id="bm">
+  <div id="bmc">
+    <div id="bmtitle">💰 BUY IN</div>
+    <button class="bmo" onclick="doBuyIn(4000)">4,000 — 20 BB (Short)</button>
+    <button class="bmo" onclick="doBuyIn(10000)">10,000 — 50 BB (Regular)</button>
+    <button class="bmo" onclick="doBuyIn(20000)">20,000 — 100 BB (Deep)</button>
+    <button class="bmo" onclick="doBuyIn(50000)">50,000 — 250 BB (High Roller)</button>
+    <button class="bmo cx" onclick="closeBuyIn()">Cancel</button>
+  </div>
+</div>
+
+<!-- AUTO DEAL TOAST -->
+<div id="adt">Next hand in <span id="adc">5</span>s…</div>
+
+<!-- WAITING ROOM -->
+<div id="wroom">
+  <div id="wrc">
+    <div id="wr-flag">
+      <div class="fb"></div>
+      <div class="fw">
+        <svg viewBox="0 0 40 40" fill="none" width="28" height="28">
+          <ellipse cx="20" cy="15" rx="6" ry="8" fill="#2e7d32"/>
+          <ellipse cx="20" cy="13" rx="4" ry="5" fill="#43a047"/>
+          <circle cx="20" cy="9" r="3" fill="#1b5e20"/>
+          <ellipse cx="20" cy="25" rx="3" ry="7" fill="#1565c0"/>
+          <circle cx="21.5" cy="8" r="1" fill="#fff"/>
+          <path d="M14 17Q9 22 11 28Q15 23 20 21Z" fill="#388e3c"/>
+          <path d="M26 17Q31 22 29 28Q25 23 20 21Z" fill="#388e3c"/>
+        </svg>
+      </div>
+      <div class="fb"></div>
+    </div>
+    <div id="wr-title">Mesa de Poker Guatemala</div>
+    <div id="wr-sub">Waiting for players…</div>
+
+    <!-- Seat grid -->
+    <div id="wr-seats"></div>
+
+    <!-- Countdown -->
+    <div id="wr-countdown">
+      <div id="wr-cd-ring">
+        <svg viewBox="0 0 64 64" width="64" height="64">
+          <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="5"/>
+          <circle id="wr-arc" cx="32" cy="32" r="28" fill="none" stroke="#c9a84c" stroke-width="5"
+            stroke-dasharray="175.9" stroke-dashoffset="0"
+            stroke-linecap="round" transform="rotate(-90 32 32)"/>
+        </svg>
+        <div id="wr-cd-num">3:00</div>
+      </div>
+      <div id="wr-cd-label">Bots fill empty seats automatically</div>
+    </div>
+
+    <div id="wr-actions">
+      <button class="bmo" onclick="wrStartNow()">▶ Start Now with Bots</button>
+      <button class="bmo" id="wr-share-btn" onclick="wrCopyLink()">🔗 Copy Invite Link</button>
+    </div>
+    <div id="wr-share-note"></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════ SOUND ════════════════════════════
+let sOn=true;let actx;
+function gac(){if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();return actx;}
+function bp(f=440,d=.08,v=.12,t='sine'){
+  if(!sOn)return;
+  try{const c=gac(),o=c.createOscillator(),g=c.createGain();
+    o.connect(g);g.connect(c.destination);o.frequency.value=f;o.type=t;
+    g.gain.setValueAtTime(v,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);
+    o.start();o.stop(c.currentTime+d);}catch(e){}
+}
+const SND={
+  deal:()=>{bp(600,.05,.09);setTimeout(()=>bp(720,.05,.09),70);},
+  chip:()=>bp(1100,.04,.07,'square'),
+  fold:()=>bp(250,.14,.1,'sawtooth'),
+  check:()=>bp(520,.05,.06),
+  win:()=>[523,659,784,1047].forEach((f,i)=>setTimeout(()=>bp(f,.18,.14),i*130)),
+  allin:()=>{bp(180,.18,.18,'sawtooth');setTimeout(()=>bp(360,.25,.18,'square'),190);},
+  tick:()=>bp(880,.03,.04,'square'),
+};
+function toggleSnd(){sOn=!sOn;document.getElementById('sbtn').textContent=sOn?'🔊':'🔇';}
+
+// ════════════════════════════ DECK + EVAL ════════════════════════════
+const SUITS=['♠','♥','♦','♣'],RANKS=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+const RV={'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,J:11,Q:12,K:13,A:14};
+const mkDk=()=>{const d=[];for(const s of SUITS)for(const r of RANKS)d.push({r,s});return d;}
+// Cryptographically secure Fisher-Yates shuffle using Web Crypto API
+function shuf(d){
+  const arr=[...d];
+  const buf=new Uint32Array(arr.length);
+  crypto.getRandomValues(buf);
+  for(let i=arr.length-1;i>0;i--){
+    const j=buf[i]%(i+1);
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+const cv=c=>RV[c.r];
+
+function evalH(cards){
+  let best={rank:-1,name:'',k:[]};
+  const combos=cards.length<=5?[cards]:[];
+  if(!combos.length)for(let i=0;i<cards.length;i++)for(let j=i+1;j<cards.length;j++)combos.push(cards.filter((_,k)=>k!==i&&k!==j));
+  for(const c of combos){const r=ev5(c);if(r.rank>best.rank||(r.rank===best.rank&&cmpK(r.k,best.k)>0))best=r;}
+  return best;
+}
+function ev5(cs){
+  const vs=cs.map(cv).sort((a,b)=>b-a),ss=cs.map(c=>c.s);
+  const fl=ss.every(s=>s===ss[0]),st=chkSt(vs);
+  const cnt={};vs.forEach(v=>cnt[v]=(cnt[v]||0)+1);
+  const grp=Object.entries(cnt).sort((a,b)=>b[1]-a[1]||b[0]-a[0]);
+  const [t,s]=grp;
+  if(fl&&st.is){if(vs[0]===14&&vs[1]===13)return{rank:9,name:'Royal Flush',k:vs};return{rank:8,name:'Straight Flush',k:[st.h]};}
+  if(t[1]===4)return{rank:7,name:'Four of a Kind',k:[+t[0],s?+s[0]:0]};
+  if(t[1]===3&&s&&s[1]===2)return{rank:6,name:'Full House',k:[+t[0],+s[0]]};
+  if(fl)return{rank:5,name:'Flush',k:vs};
+  if(st.is)return{rank:4,name:'Straight',k:[st.h]};
+  if(t[1]===3)return{rank:3,name:'Three of a Kind',k:[+t[0],...grp.slice(1).map(g=>+g[0])]};
+  if(t[1]===2&&s&&s[1]===2)return{rank:2,name:'Two Pair',k:[+t[0],+s[0],...grp.slice(2).map(g=>+g[0])]};
+  if(t[1]===2)return{rank:1,name:'One Pair',k:grp.map(g=>+g[0])};
+  return{rank:0,name:'High Card',k:vs};
+}
+function chkSt(vs){
+  const u=[...new Set(vs)];if(u[0]===14)u.push(1);
+  for(let i=0;i<=u.length-5;i++){const sl=u.slice(i,i+5);if(sl[0]-sl[4]===4&&new Set(sl).size===5)return{is:true,h:sl[0]};}
+  return{is:false};
+}
+function cmpK(a,b){for(let i=0;i<Math.min(a.length,b.length);i++){if(a[i]>b[i])return 1;if(a[i]<b[i])return -1;}return 0;}
+
+// ════════════════════════════ SEAT POSITIONS — 6-HANDED ════════════════════════════
+// Seat 0 = human, bottom center (270° in SVG = bottom, but trig 90° = bottom of screen)
+// Dealer chair is top-center SVG decoration. 6 seats evenly at 60° apart.
+// ══ 8-HANDED WPT GOLD SEAT POSITIONS ══
+// 0=bottom(YOU)  1=btm-left  2=left-mid  3=top-left
+// 4=top-center   5=top-right 6=right-mid 7=btm-right
+// Oval axes: rx=46% (wide), ry=43% (tall), origin=50%,50%
+// Math angle: 90°=bottom, 270°=top, 0°=right, 180°=left
+// Seat positions — oval centered in padded twrap
+// rx=44 (horiz), ry=36 (vert) — tighter ry so top seat stays visible
+// At 270°: top = 50-36 = 14%  → well inside padded wrap
+// At 90°:  top = 50+36 = 86%  → bottom seat, overflows slightly (fine, no clip)
+const DEG=(d,rx=44,ry=36)=>{
+  const r=d*Math.PI/180;
+  return {l:(50+rx*Math.cos(r)).toFixed(2)+'%', t:(50+ry*Math.sin(r)).toFixed(2)+'%'};
+};
+const SPOS8=[
+  DEG(90),   // 0 YOU — bottom center
+  DEG(128),  // 1 bottom-left
+  DEG(162),  // 2 left mid
+  DEG(207),  // 3 top-left
+  DEG(270),  // 4 top center (opposite YOU)
+  DEG(333),  // 5 top-right
+  DEG(18),   // 6 right mid
+  DEG(52),   // 7 bottom-right
+];
+const SEATS=8;
+const HUMAN=0;
+// Bot names/emojis — shuffled every session
+const _BNAMES=["Carlos","Maria","Diego","Rosa","Javier","Ana","Luis"];
+const _BEMOJIS=["\u{1F920}","\u{1F483}","\u{1F60E}","\u{1F33A}","\u{1F3A9}","\u{1F98B}","\u{1F9A2}"];
+const _nameOrder=shuffleArr([0,1,2,3,4,5,6]);
+const BNAMES=_nameOrder.map(i=>_BNAMES[i]);
+const BEMOJIS=_nameOrder.map(i=>_BEMOJIS[i]);
+const SB=100,BB=200,TIMER=45;
+
+// ════════════════════════════ GAME STATE ════════════════════════════
+let G={
+  seats:[],deck:[],comm:[],
+  pot:0,phase:'idle',dealer:1,
+  toCall:0,minRaise:BB,
+  tmr:null,tLeft:0,
+  handOver:true,
+  bQ:[],bPos:0,
+  autoTmr:null,
+};
+
+function initSeats(){
+  G.seats=[];
+  for(let i=0;i<SEATS;i++)
+    G.seats.push({i,name:i===HUMAN?'You':BNAMES[i-1],
+      emoji:i===HUMAN?'🫵':BEMOJIS[i-1],
+      chips:i===HUMAN?0:10000,bet:0,
+      hole:[],folded:false,allin:false,active:false,isH:i===HUMAN,
+      handsDealt:0,vpipCount:0,pfrCount:0,
+      threeBetCount:0,threeBetOpp:0,
+      cbetCount:0,cbetOpp:0,
+      foldToCbet:0,facedCbet:0,   // fold-to-cbet tracking
+      postFlopBet:0,postFlopOpp:0, // post-flop aggression
+      showdownWin:0,showdownTotal:0, // showdown win rate
+      // ── Runtime adaptive profile ──
+      // Starts at base style, drifts based on observed tendencies
+      _adaptVpip:null,_adaptBluff:null,_adaptCbet:null,
+      totalWon:0,handsWon:0,
+    });
+}
+
+// ════════════════════════════ RENDER ════════════════════════════
+const fmt=n=>n.toLocaleString();
+function cardH(c,sz='md'){
+  if(!c)return`<div class="card ${sz} ph"></div>`;
+  const red=c.s==='♥'||c.s==='♦';
+  return`<div class="card ${sz} ${red?'red':'black'} deal"><span class="cr">${c.r}</span><span class="cs">${c.s}</span></div>`;
+}
+function backH(sz='md'){return`<div class="card ${sz} back deal"></div>`;}
+
+
+function buildSeatEl(i){
+  const s=G.seats[i];const p=SPOS8[i];
+  const el=document.createElement('div');
+  el.className='seat';el.id='s'+i;
+  el.style.left=p.l; el.style.top=p.t;
+  const isHuman=i===HUMAN;
+  // Dealer button: WPT Gold white disc with bold D
+  const isD=i===G.dealer;
+  const dBtn=isD?'<div class="dbtn">D</div>':'';
+  const sbI=(G.dealer+1)%SEATS,bbI=(G.dealer+2)%SEATS;
+  let pip='';
+  if(s.folded)                              pip='<span class="spip fold">FOLD</span>';
+  else if(s.allin)                          pip='<span class="spip allin">ALL IN</span>';
+  else if(i===sbI&&G.phase==='pre')         pip='<span class="spip sbl">SB</span>';
+  else if(i===bbI&&G.phase==='pre')         pip='<span class="spip sbl">BB</span>';
+  // Bots show face-down cards; hero shows cards in player-strip below
+  const hole=(!isHuman&&s.hole.length&&!s.folded)
+    ?`<div class="shole">${backH('sm')}${backH('sm')}</div>`:'';
+  // Stat tooltip direction per seat position
+  // 0=btm-ctr  1=btm-L   2=left   3=top-L
+  // 4=top-ctr  5=top-R   6=right  7=btm-R
+  const _td={
+    0:[false,''],1:[false,'tip-right'],2:[false,'tip-right'],3:[true,'tip-right'],
+    4:[true,''],5:[true,'tip-left'],6:[false,'tip-left'],7:[false,'tip-left'],
+  };
+  const [tb,th]=_td[i]||[false,''];
+  const tipHtml=isHuman?'':buildStatTip(i,tb,th);
+  el.innerHTML=`
+    ${tipHtml}
+    <div class="sbox${isHuman?' you':''}">
+      ${dBtn}${pip}
+      <div class="sbet"></div>
+      <div class="savatar">${s.emoji}</div>
+      <div class="sinfo">
+        <div class="sname">${isHuman?'<em>YOU</em>':s.name}</div>
+        <div class="sstack">${fmt(s.chips)}</div>
+        ${hole}
+      </div>
+      <div class="stimer"><div class="stimerbar"></div></div>
+    </div>`;
+  return el;
+}
+
+function buildStatTip(i, tipBelow=false, tipHorz=''){
+  const s=G.seats[i];
+  const hands=Math.max(1,s.handsDealt);
+  const vpip=hands>0?Math.round(s.vpipCount/hands*100):0;
+  const pfr=hands>0?Math.round(s.pfrCount/hands*100):0;
+  const b3opp=Math.max(1,s.threeBetOpp);
+  const b3=s.threeBetOpp>0?Math.round(s.threeBetCount/b3opp*100):0;
+  const af=vpip>0?Math.round((pfr/vpip)*100):0;
+  function bar(cls,pct){
+    return `<div class="stat-bar-wrap"><div class="stat-bar ${cls}" style="width:${Math.min(100,pct)}%"></div></div>`;
+  }
+  const cls='stat-tip'+(tipBelow?' tip-below':'')+(tipHorz?' '+tipHorz:'');
+  return `<div class="${cls}" id="tip${i}">
+    <div class="stat-tip-name">${s.emoji} ${s.name}</div>
+    <div class="stat-row">
+      <span class="stat-lbl">VPIP</span>${bar('vpip',vpip)}
+      <span class="stat-val">${hands<3?'—':vpip+'%'}</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-lbl">PFR</span>${bar('pfr',pfr)}
+      <span class="stat-val">${hands<3?'—':pfr+'%'}</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-lbl">3BET</span>${bar('b3',b3)}
+      <span class="stat-val">${s.threeBetOpp<3?'—':b3+'%'}</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-lbl">AGG%</span>${bar('af',af)}
+      <span class="stat-val">${hands<3?'—':af+'%'}</span>
+    </div>
+    <div class="stat-hands">${hands} hands</div>
+  </div>`;
+}
+
+function refreshStatTip(i){
+  const el=document.getElementById('tip'+i);
+  if(!el)return;
+  // 8-seat direction map (same as buildSeatEl)
+  const _td={
+    0:[false,''],1:[false,'tip-right'],2:[false,'tip-right'],3:[true,'tip-right'],
+    4:[true,''],5:[true,'tip-left'],6:[false,'tip-left'],7:[false,'tip-left'],
+  };
+  const [tb,th]=_td[i]||[false,''];
+  const tmp=document.createElement('div');
+  tmp.innerHTML=buildStatTip(i,tb,th);
+  el.replaceWith(tmp.firstElementChild);
+}
+
+// Build and inject human stats into #my-stats panel in player-strip
+function refreshMyStats(){
+  const el=document.getElementById('my-stats');
+  if(!el)return;
+  const s=G.seats[HUMAN];
+  const hands=Math.max(1,s.handsDealt);
+  const vpip=hands>0?Math.round(s.vpipCount/hands*100):0;
+  const pfr=hands>0?Math.round(s.pfrCount/hands*100):0;
+  const b3=s.threeBetOpp>0?Math.round(s.threeBetCount/Math.max(1,s.threeBetOpp)*100):0;
+  const af=vpip>0?Math.round((pfr/vpip)*100):0;
+  function bar(cls,pct){
+    return `<div class="stat-bar-wrap"><div class="stat-bar ${cls}" style="width:${Math.min(100,pct)}%"></div></div>`;
+  }
+  el.innerHTML=`
+    <div class="stat-tip-name">${s.emoji} YOU — My Stats</div>
+    <div class="stat-row"><span class="stat-lbl">VPIP</span>${bar('vpip',vpip)}<span class="stat-val">${hands<3?'—':vpip+'%'}</span></div>
+    <div class="stat-row"><span class="stat-lbl">PFR</span>${bar('pfr',pfr)}<span class="stat-val">${hands<3?'—':pfr+'%'}</span></div>
+    <div class="stat-row"><span class="stat-lbl">3BET</span>${bar('b3',b3)}<span class="stat-val">${s.threeBetOpp<3?'—':b3+'%'}</span></div>
+    <div class="stat-row"><span class="stat-lbl">AGG%</span>${bar('af',af)}<span class="stat-val">${hands<3?'—':af+'%'}</span></div>
+    <div class="stat-hands">${hands} hands • hover to see your stats</div>`;
+}
+
+// ── Patch one seat element in-place (works for human AND bots) ──
+function patchSeatEl(i){
+  const s=G.seats[i];
+  const el=document.getElementById('s'+i);
+  if(!el)return;
+  const isHuman=i===HUMAN;
+  const sbI=(G.dealer+1)%SEATS,bbI=(G.dealer+2)%SEATS;
+  // Classes
+  el.className='seat'
+    +(s.folded?' folded':'')
+    +(s.active?' active':'')
+    +(isHuman?' human':'')
+    +(s.chips<=0&&!s.hole.length?' bust':'');
+  // Stack
+  const stackEl=el.querySelector('.sstack');
+  if(stackEl)stackEl.textContent=fmt(s.chips);
+  // Bet bubble
+  const betEl=el.querySelector('.sbet');
+  if(betEl){
+    if(s.bet>0&&G.phase!=='idle'){betEl.textContent=fmt(s.bet);betEl.classList.add('show');}
+    else{betEl.textContent='';betEl.classList.remove('show');}
+  }
+  // Hole cards (bots only — human shows in player-strip)
+  if(!isHuman){
+    const holeEl=el.querySelector('.shole');
+    if(holeEl)holeEl.style.display=s.folded?'none':'flex';
+  }
+  // Pip badge
+  let pipTxt='',pipCls='';
+  if(s.folded){pipTxt='FOLD';pipCls='fold';}
+  else if(s.allin){pipTxt='AI';pipCls='allin';}
+  else if(i===sbI&&G.phase==='pre'){pipTxt='SB';pipCls='sbl';}
+  else if(i===bbI&&G.phase==='pre'){pipTxt='BB';pipCls='sbl';}
+  let pipEl=el.querySelector('.spip');
+  if(pipTxt){
+    if(!pipEl){pipEl=document.createElement('span');pipEl.className='spip';el.querySelector('.sbox').insertBefore(pipEl,el.querySelector('.savatar'));}
+    pipEl.textContent=pipTxt;pipEl.className='spip '+pipCls;
+  } else if(pipEl){pipEl.remove();}
+  // Dealer button
+  const existD=el.querySelector('.dbtn');
+  if(i===G.dealer&&!existD){
+    const d=document.createElement('div');d.className='dbtn';
+    d.textContent='D';
+    el.querySelector('.sbox').prepend(d);
+  } else if(i!==G.dealer&&existD){existD.remove();}
+}
+
+function renderSeats(){
+  const wrap=document.getElementById('twrap');
+  G.seats.forEach((s,i)=>{
+    let el=document.getElementById('s'+i);
+    if(!el){el=buildSeatEl(i);wrap.appendChild(el);}
+    patchSeatEl(i);
+  });
+  updPlayer();updPot();
+}
+
+// Build all seat elements once at game start (including human)
+function initSeatEls(){
+  const wrap=document.getElementById('twrap');
+  G.seats.forEach((s,i)=>{
+    const el=buildSeatEl(i);wrap.appendChild(el);
+  });
+}
+
+// Update player-strip (hole cards + hand name) and action bar stack
+function updPlayer(){
+  const s=G.seats[HUMAN];
+  // Update seat box stack
+  patchSeatEl(HUMAN);
+  // Hole cards in player-strip
+  const ph=document.getElementById('phole');
+  ph.innerHTML='';
+  if(s.hole.length===2&&!s.folded){
+    s.hole.forEach(c=>{ph.innerHTML+=cardH(c,'md');});
+  }
+  // Hand name label
+  const hn=document.getElementById('phandname');
+  if(s.hole.length===2&&G.comm.length>=3&&!s.folded){
+    const ev=evalH([...s.hole,...G.comm]);hn.textContent=ev.name;hn.classList.add('show');
+  }else{hn.classList.remove('show');}
+  // Action bar stack
+  document.getElementById('mychips').innerHTML=`<em>STACK </em>${fmt(s.chips)}`;
+  refreshMyStats();
+}
+
+function updPot(){
+  const pa=document.getElementById('pot-amt');
+  pa.textContent=G.pot>0?fmt(G.pot):'—';
+  const cr=document.getElementById('comm-row');
+  const key=G.comm.map(c=>c.r+c.s).join(',');
+  if(cr.dataset.last!==key){
+    cr.dataset.last=key;
+    cr.innerHTML='';
+    G.comm.forEach(c=>cr.innerHTML+=cardH(c,'md'));
+    for(let i=G.comm.length;i<5;i++)cr.innerHTML+=`<div class="card md ph"></div>`;
+  }
+  const labels={idle:'',pre:'PRE-FLOP',flop:'FLOP',turn:'TURN',river:'RIVER',showdown:'SHOWDOWN'};
+  document.getElementById('street-lbl').textContent=labels[G.phase]||'';
+}
+
+function setLog(m){document.getElementById('logline').textContent=m;}
+
+// ════════════════════════════ ACTIONS UI ════════════════════════════
+function enAct(on){
+  const s=G.seats[HUMAN];
+  // Never show action bar if human has no hole cards or is folded/busted
+  const canAct=on && s && s.hole.length===2 && !s.folded && !s.allin && s.chips>0;
+  document.getElementById('abar').classList.toggle('off',!canAct);
+  if(!canAct){closeRaise();return;}
+  const ca=Math.max(0,G.toCall-s.bet);
+  const ck=ca===0; // can check (no bet to call)
+  // CHECK vs CALL
+  document.getElementById('bcheck').disabled=!ck;
+  document.getElementById('bcheck').style.display=ck?'':'none';
+  document.getElementById('bcall').disabled=ck;
+  document.getElementById('bcall').style.display=ck?'none':'';
+  // Show call amount as sub-label
+  const callAmt=document.getElementById('bcall-amt');
+  if(callAmt) callAmt.textContent=ca>0?fmt(ca):'';
+  // BET (no prior bet) vs RAISE (facing bet)
+  document.getElementById('bbet').style.display=ck?'':'none';
+  document.getElementById('braise').style.display=ck?'none':'';
+  document.getElementById('bbet').disabled=s.chips<=0;
+  document.getElementById('braise').disabled=s.chips<=0;
+  document.getElementById('ballin').disabled=s.chips<=0;
+  initRaise();
+}
+function togRaise(){document.getElementById('rrow').classList.toggle('open');}
+function closeRaise(){document.getElementById('rrow').classList.remove('open');}
+// Raise stepper state
+let G_raise=0; // chips player will put IN this action
+let G_raiseMin=0,G_raiseMax=0;
+
+function initRaise(){
+  const s=G.seats[HUMAN];
+  const ca=Math.max(0,G.toCall-s.bet); // amount to call first
+  // Minimum total chips to put in = call + BB (min raise is 1 BB above current bet)
+  G_raiseMin=ca+BB;
+  G_raiseMax=s.chips;
+  G_raise=Math.min(G_raiseMin,G_raiseMax);
+  updRaiseLabel();
+}
+
+// pot-fraction presets: frac = 0.5, 0.75, or 1.0
+function setRaisePre(frac){
+  const s=G.seats[HUMAN];
+  const ca=Math.max(0,G.toCall-s.bet);
+  // Pot-sized raise = call + frac*(pot after calling)
+  const potAfterCall=G.pot+ca;
+  const raiseBy=Math.round(potAfterCall*frac);
+  // Total chips to put in = call + raise increment, min 1BB above call
+  const total=ca+Math.max(BB,raiseBy);
+  G_raise=Math.max(G_raiseMin,Math.min(G_raiseMax,total));
+  updRaiseLabel();
+}
+
+// Fine nudge ±1 BB
+function stepRaise(dir){
+  const delta=dir==='up'?BB:-BB;
+  G_raise=Math.max(G_raiseMin,Math.min(G_raiseMax,G_raise+delta));
+  updRaiseLabel();
+}
+
+function updRaiseLabel(){
+  const s=G.seats[HUMAN];
+  const ca=Math.max(0,G.toCall-s.bet);
+  const verb=ca===0?'BET':'RAISE TO';
+  document.getElementById('ramt').textContent=verb+' '+fmt(s.bet+G_raise);
+  document.getElementById('rbetbtn').textContent=ca===0?'BET ✓':'RAISE ✓';
+}
+function confirmRaise(){pAct('raise',G_raise);}
+function updR(){} // legacy no-op
+
+// ════════════════════════════ TIMER ════════════════════════════
+function startTmr(cb){
+  stopTmr();G.tLeft=TIMER;
+  const bar=document.getElementById('gtimerbar'),rd=document.getElementById('trd');
+  bar.style.width='100%';bar.style.background='var(--gold)';
+  G.tmr=setInterval(()=>{
+    G.tLeft--;
+    bar.style.width=((G.tLeft/TIMER)*100)+'%';
+    if(G.tLeft<=8)bar.style.background='var(--red)';
+    else if(G.tLeft<=15)bar.style.background='#f4a261';
+    rd.textContent=G.tLeft+'s';
+    if(G.tLeft<=5)SND.tick();
+    if(G.tLeft<=0){stopTmr();cb();}
+  },1000);
+}
+function stopTmr(){
+  if(G.tmr){clearInterval(G.tmr);G.tmr=null;}
+  document.getElementById('gtimerbar').style.width='0';
+  document.getElementById('trd').textContent='—';
+}
+function startSeatTmr(i){
+  const el=document.getElementById('s'+i);if(!el)return;
+  const bar=el.querySelector('.stimerbar');if(!bar)return;
+  bar.style.width='100%';bar.style.background='var(--gold)';
+  let t=TIMER;
+  const iv=setInterval(()=>{
+    t--;bar.style.width=((t/TIMER)*100)+'%';
+    if(t<=8)bar.style.background='var(--red)';
+    if(t<=0)clearInterval(iv);
+  },1000);
+  el._tv=iv;
+}
+function stopSeatTmr(i){
+  const el=document.getElementById('s'+i);if(!el)return;
+  if(el._tv){clearInterval(el._tv);el._tv=null;}
+  const bar=el.querySelector('.stimerbar');if(bar){bar.style.width='0';bar.style.background='var(--gold)';}
+}
+
+// ════════════════════════════ FELT TOKENS (D / SB / BB on felt) ════════════════════════════
+
+function placeFeltTokens(d,sb,bb){ /* tokens removed — seat pills show D/SB/BB */ }
+function clearFeltTokens(){
+  ['ftok-d','ftok-sb','ftok-bb'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.remove();
+  });
+}
+
+function showPlayerTokens(isDeal, isSB, isBB){
+  // now delegates to felt tokens, called after G.dealer/sbI/bbI are set
+  placeFeltTokens(G.dealer, (G.dealer+1)%SEATS, (G.dealer+2)%SEATS);
+}
+function clearPlayerTokens(){clearFeltTokens();}
+function showBlindToken(type){
+  if(!type){clearFeltTokens();return;}
+  placeFeltTokens(G.dealer,(G.dealer+1)%SEATS,(G.dealer+2)%SEATS);
+}
+function clearBlindToken(){clearFeltTokens();}
+function newHand(){
+  if(G.autoTmr){clearInterval(G.autoTmr);G.autoTmr=null;}
+  document.getElementById('adt').classList.remove('show');
+  stopTmr();closeOv();clearFeltTokens();
+  const ps=G.seats[HUMAN];
+  if(!ps||ps.chips<=0){showBuyIn();return;}
+  G.seats.forEach(s=>{if(!s.isH&&s.chips<=0)s.chips=10000;});
+  G.deck=shuf(mkDk());G.comm=[];G.pot=0;G.phase='pre';G.handOver=false;
+  G.toCall=BB;G.minRaise=BB;
+  G.seats.forEach(s=>{
+    s.bet=0;s.hole=[];s.folded=false;s.allin=false;s.active=false;
+    // Per-hand stat flags
+    s._vpipThisHand=false;s._pfrThisHand=false;
+    s._threeBetOppThisHand=false;s._threeBetThisHand=false;
+    s._cbetOppThisHand=false;s._cbetThisHand=false;
+    s._facedCbetThisHand=false;s._postFlopActed=false;
+    // Clear card cache so updPlayer always re-renders on new hand
+    if(s.i===HUMAN){const ph=document.getElementById('phole');if(ph)ph.dataset.last='';}
+  });
+  do{G.dealer=(G.dealer+1)%SEATS;}while(G.seats[G.dealer].chips<=0);
+  G.seats.forEach(s=>{if(s.chips>0){s.hole=[G.deck.pop(),G.deck.pop()];s.handsDealt++;}});
+  const sbI=(G.dealer+1)%SEATS,bbI=(G.dealer+2)%SEATS;
+  postBl(sbI,SB);postBl(bbI,BB);
+  // Show position tokens on felt
+  placeFeltTokens(G.dealer, sbI, bbI);
+  // Rebuild hole card slots on each seat for the new hand
+  // Reset all seat elements for new hand
+  G.seats.forEach((s,i)=>{
+    const el=document.getElementById('s'+i);if(!el)return;
+    el.classList.remove('winner','folded','active','bust','human');
+    if(i===HUMAN){el.classList.add('human');return;} // human has no face-down cards in seat
+    let hc=el.querySelector('.shole');
+    if(s.chips>0){
+      if(!hc){hc=document.createElement('div');hc.className='shole';hc.style.cssText='display:flex;gap:2px;margin-top:2px;';el.querySelector('.stimer').before(hc);}
+      hc.innerHTML=backH('sm')+backH('sm');
+    } else if(hc){hc.remove();}
+  });
+  renderSeats();updPot();enAct(false);closeRaise();SND.deal();
+  chat('sys',`🃏 New hand — Dealer: ${G.seats[G.dealer].name} | Blinds: ${SB}/${BB}`);
+  setLog(`New hand. Dealer: ${G.seats[G.dealer].name}`);
+  setTimeout(()=>startBet((bbI+1)%SEATS),500);
+}
+function postBl(i,a){const s=G.seats[i];const v=Math.min(a,s.chips);s.chips-=v;s.bet=v;G.pot+=v;}
+
+// ════════════════════════════ BETTING ROUNDS ════════════════════════════
+const inHand=()=>G.seats.map((_,i)=>i).filter(i=>!G.seats[i].folded&&G.seats[i].hole.length);
+const canAct2=()=>G.seats.map((_,i)=>i).filter(i=>!G.seats[i].folded&&!G.seats[i].allin&&G.seats[i].chips>0&&G.seats[i].hole.length);
+
+function startBet(from){
+  if(inHand().length<=1){endHand();return;}
+  G.bQ=[];
+  for(let step=0;step<SEATS;step++){
+    const i=(from+step)%SEATS;const s=G.seats[i];
+    if(!s.folded&&!s.allin&&s.chips>0&&s.hole.length)G.bQ.push(i);
+  }
+  G.bPos=0;nextTurn();
+}
+
+function nextTurn(){
+  if(inHand().length<=1){endHand();return;}
+  if(G.bPos>0){
+    const ca=canAct2();const allMat=ca.every(i=>G.seats[i].bet>=G.toCall);
+    if(allMat&&G.bPos>=G.bQ.length){endBet();return;}
+    if(G.bPos>=G.bQ.length){endBet();return;}
+  }
+  if(G.bPos>=G.bQ.length){endBet();return;}
+  const idx=G.bQ[G.bPos];const s=G.seats[idx];
+  G.seats.forEach(x=>x.active=false);s.active=true;renderSeats();
+  if(s.isH){
+    enAct(true);startTmr(()=>pAct('check'));
+    setLog(`Your turn — to call: ${Math.max(0,G.toCall-s.bet)}`);
+  } else {
+    enAct(false);startSeatTmr(idx);
+    setLog(`${s.name} is thinking…`);
+    setTimeout(()=>botTurn(idx),650+Math.random()*950);
+  }
+}
+
+function pAct(type,amt=0){
+  if(G.handOver)return;
+  stopTmr();enAct(false);closeRaise();
+  applyAct(HUMAN,type,amt);G.bPos++;
+  setTimeout(nextTurn,250);
+}
+
+
+
+// ════════════════════════════ BOT PERSONALITIES ════════════════════════════
+// TAG=tight-aggressive  LAG=loose-aggressive  GTO=balanced
+// MANIAC=ultra-aggressive  NIT=tight-passive
+// Shuffle an array in place using crypto RNG
+function shuffleArr(a){
+  const buf=new Uint32Array(a.length);
+  crypto.getRandomValues(buf);
+  for(let i=a.length-1;i>0;i--){const j=buf[i]%(i+1);[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+// 7 personalities for 8-handed (bots 1-7), one per seat, shuffled each session
+const _allStyles=['TAG','LAG','GTO','MANIAC','NIT','TAG','LAG'];
+const BOT_STYLES=shuffleArr([..._allStyles]);
+
+// 6-max profiles — higher vpip/pfr/cbet, tighter f3b (defend more), more bluff freq
+const STYLE_PROFILE={
+  TAG:   {vpip:.36,pfr:.28,b3:.10,cbet:.78,f3b:.45,bluff:.22},
+  LAG:   {vpip:.50,pfr:.40,b3:.18,cbet:.86,f3b:.28,bluff:.36},
+  GTO:   {vpip:.42,pfr:.34,b3:.14,cbet:.72,f3b:.36,bluff:.26},
+  MANIAC:{vpip:.65,pfr:.55,b3:.30,cbet:.94,f3b:.14,bluff:.50},
+  NIT:   {vpip:.24,pfr:.18,b3:.06,cbet:.62,f3b:.60,bluff:.10},
+};
+
+
+// ════════════════════════════════════════════════════════════════
+// BOT AI — GTO/Exploitative with position awareness
+// ════════════════════════════════════════════════════════════════
+
+// ── Hand strength score 0–1 (pre + post flop) ──
+function botStr(idx){
+  const s=G.seats[idx];
+  if(!s.hole||s.hole.length<2)return 0.35;
+  const h=s.hole;
+  const v1=cv(h[0]),v2=cv(h[1]);
+  const suited=h[0].s===h[1].s;
+  const hi=Math.max(v1,v2),lo=Math.min(v1,v2);
+  const gap=hi-lo;
+
+  // ── Pre-flop equity estimate ──
+  if(G.comm.length===0){
+    let sc=0;
+    if(v1===v2){
+      // Pairs: 22=0.32 → AA=0.85
+      sc=0.32+((v1-2)/12)*0.53;
+    } else {
+      sc=(hi-2)/12*0.44+(lo-2)/12*0.18;
+      if(suited) sc+=0.07;
+      if(gap===1) sc+=0.09; // connectors
+      else if(gap===2) sc+=0.05;
+      else if(gap===3) sc+=0.02;
+      if(lo>=10) sc+=0.08;  // broadway
+      if(hi===14&&lo>=10) sc+=0.10; // AK/AQ/AJ/AT
+      if(hi===14&&lo>=8&&suited) sc+=0.06; // A8s+
+    }
+    return Math.max(0,Math.min(1,sc));
+  }
+
+  // ── Post-flop: hand evaluator + draw equity ──
+  const ev=evalH([...h,...G.comm]);
+  // rank 0=hi-card … 9=royal. Map generously so mid-strength hands play
+  const rankMap=[0.12,0.28,0.44,0.58,0.68,0.77,0.85,0.92,0.97,1.0];
+  let base=rankMap[Math.min(ev.rank,9)];
+
+  // Draw boosts on flop/turn
+  if(G.comm.length<5){
+    const all=[...h,...G.comm];
+    const sc={};all.forEach(c=>sc[c.s]=(sc[c.s]||0)+1);
+    if(Object.values(sc).some(v=>v===4)) base+=0.12; // flush draw
+    const vals=[...new Set(all.map(c=>cv(c)))].sort((a,b)=>a-b);
+    for(let i=0;i<=vals.length-4;i++){
+      if(vals[i+3]-vals[i]===3){base+=0.09;break;} // OESD
+    }
+    // Gutshot
+    for(let i=0;i<=vals.length-4;i++){
+      if(vals[i+3]-vals[i]===4){base+=0.04;break;}
+    }
+  }
+  const topK=(ev.k&&ev.k[0])||0;
+  base+=((topK-2)/12)*0.04;
+  return Math.max(0,Math.min(1,base));
+}
+
+// ── Position: 0=EP, 1=MP, 2=CO, 3=BTN, 4=SB, 5=BB ──
+// 8-handed position mapping → 6 range buckets [UTG,HJ,CO,BTN,SB,BB]
+// 8 seats: dealer=BTN, +1=SB, +2=BB, +3=UTG, +4=UTG+1, +5=MP, +6=HJ, +7=CO
+function botPosition(idx){
+  const dealer=G.dealer;
+  if(idx===dealer) return 3; // BTN
+  const sbI=(dealer+1)%SEATS, bbI=(dealer+2)%SEATS;
+  if(idx===sbI) return 4; // SB
+  if(idx===bbI) return 5; // BB
+  const dist=(idx-bbI+SEATS)%SEATS; // 1=UTG,2=UTG+1,3=MP,4=HJ,5=CO
+  if(dist<=2) return 0; // UTG / UTG+1 → tightest bucket
+  if(dist===3) return 1; // MP → HJ bucket
+  if(dist===4) return 1; // HJ
+  return 2; // CO
+}
+
+// ── 6-Max open ranges — everyone plays wider than full ring ──
+// Positions: [UTG, HJ, CO, BTN, SB, BB(no open)]
+// 6-max GTO opens: UTG~40%, HJ~50%, CO~60%, BTN~75%, SB~55%
+// Thresholds calibrated so pf>=thresh gives correct open% per position
+// [UTG, HJ, CO, BTN, SB, BB]
+const OPEN_RANGE={
+  NIT:    [0.645,0.540,0.460,0.355,0.472,1.0],
+  TAG:    [0.503,0.445,0.382,0.295,0.408,1.0],
+  GTO:    [0.452,0.393,0.330,0.265,0.357,1.0],
+  LAG:    [0.408,0.348,0.295,0.238,0.320,1.0],
+  MANIAC: [0.340,0.295,0.248,0.178,0.273,1.0],
+};
+// Call range: slightly wider than open (implied odds), same direction
+// [UTG, HJ, CO, BTN, SB, BB]
+const CALL_RANGE={
+  NIT:    [0.550,0.460,0.393,0.310,0.415,0.503],
+  TAG:    [0.460,0.408,0.360,0.270,0.375,0.393],
+  GTO:    [0.415,0.360,0.308,0.245,0.330,0.348],
+  LAG:    [0.375,0.320,0.270,0.215,0.295,0.295],
+  MANIAC: [0.310,0.270,0.225,0.165,0.250,0.238],
+};
+// 3-bet value threshold: pf score above which we 3-bet for value
+// Derived from top N% of hands: NIT top 6%=0.74, TAG 10%=0.673, GTO 14%=0.617, LAG 18%=0.548, MANIAC 30%=0.445
+// Slightly looser at BTN/SB, tighter at UTG
+const TBET_RANGE={
+  NIT:    [0.790,0.760,0.740,0.720,0.750,0.740],
+  TAG:    [0.720,0.700,0.680,0.650,0.670,0.660],
+  GTO:    [0.660,0.640,0.617,0.590,0.610,0.600],
+  LAG:    [0.590,0.565,0.548,0.510,0.540,0.530],
+  MANIAC: [0.490,0.465,0.445,0.410,0.440,0.430],
+};
+
+// ── Main bot decision ──
+function botTurn(idx){
+  if(G.handOver)return;
+  stopSeatTmr(idx);
+  const s=G.seats[idx];
+  const style=BOT_STYLES[(idx-1)%BOT_STYLES.length];
+  const Pbase=STYLE_PROFILE[style];
+  // Use adapted runtime profile if available (after enough hands), else base
+  const P={
+    ...Pbase,
+    // Adaptive values drift from base toward exploitative adjustments
+    cbet: s._adaptCbet!==null ? s._adaptCbet : Pbase.cbet,
+    bluff:s._adaptBluff!==null? s._adaptBluff: Pbase.bluff,
+    // vpip/pfr are used for range table selection — keep near base
+    // (actual range is OPEN_RANGE keyed to style string, not P.vpip directly)
+  };
+  const ca=Math.max(0,G.toCall-s.bet);
+  const pot=Math.max(G.pot,1);
+  const street=G.phase;
+  const r=Math.random();
+  const pos=botPosition(idx); // 0=UTG,1=HJ,2=CO,3=BTN,4=SB,5=BB
+  const numActive=inHand().length;
+  const isIP=(pos===3); // in position (BTN is always IP post-flop vs everyone)
+
+  // ── Hand facts ──
+  const h=s.hole;
+  const v1=cv(h[0]),v2=cv(h[1]);
+  const suited=h[0].s===h[1].s;
+  const hi=Math.max(v1,v2),lo=Math.min(v1,v2),gap=hi-lo;
+  const isPair=v1===v2, pairRank=isPair?v1:0;
+  const isSC=suited&&gap<=2&&lo>=5;
+  const isBroadway=lo>=10&&hi>=10;
+
+  // ── Pre-flop equity score (0–1) ──
+  // Calibrated so: AA=0.85, KK=0.80, QQ=0.76, JJ=0.72, TT=0.67, 99=0.62
+  //                AKs=1.0, AKo=0.88, AQs=0.82, AQo=0.72, KQs=0.68
+  //                98s=0.43, 76s=0.35, JTo=0.52, 72o=0.18
+  function pfScore(){
+    let sc=0;
+    if(isPair){ sc=0.32+((pairRank-2)/12)*0.53; }
+    else{
+      sc=(hi-2)/12*0.44+(lo-2)/12*0.18;
+      if(suited)sc+=0.07; if(gap===1)sc+=0.09; else if(gap===2)sc+=0.05;
+      if(isBroadway)sc+=0.08; if(hi===14&&lo>=10)sc+=0.10;
+      if(hi===14&&lo>=8&&suited)sc+=0.06;
+      // Penalty for disconnected offsuit trash (gap>3 and not broadway)
+      if(!suited&&gap>3&&!isBroadway) sc-=0.10;
+      if(!suited&&gap>5) sc-=0.06; // extra penalty for very disconnected
+    }
+    return Math.max(0,Math.min(1,sc));
+  }
+
+  // ── Post-flop hand rank (0–9) directly, not squashed into 0-1 ──
+  // rank: 0=hc 1=pair 2=2pair 3=trips 4=str8 5=flush 6=fh 7=quads 8=sf 9=royal
+  function postRank(){
+    if(G.comm.length===0) return -1;
+    const ev=evalH([...h,...G.comm]);
+    return ev.rank;
+  }
+
+  // ── Draw outs ──
+  function drawOuts(){
+    const all=[...h,...G.comm];
+    const sc={};all.forEach(c=>sc[c.s]=(sc[c.s]||0)+1);
+    const hasFD=Object.values(sc).some(v=>v>=4); // flush draw (4 of suit)
+    const vals=[...new Set(all.map(c=>cv(c)))].sort((a,b)=>a-b);
+    let hasOESD=false,hasGS=false;
+    for(let i=0;i<=vals.length-4;i++){
+      const span=vals[i+3]-vals[i];
+      if(span===3)hasOESD=true;
+      if(span===4)hasGS=true;
+    }
+    return {fd:hasFD,oesd:hasOESD,gs:hasGS};
+  }
+
+  // ── Sizing helpers ──
+  function R(frac,minBB=1){
+    return Math.min(s.chips, ca+Math.max(BB*minBB, Math.round(pot*frac)));
+  }
+  function openSz(){
+    // 6-max: BTN 2.2x, SB 2.5x, CO/HJ 2.5x, UTG 3x
+    const mult=pos===3?2.2:pos===4?2.5:pos<=2?2.8:2.5;
+    return Math.min(s.chips, Math.round(BB*mult));
+  }
+  function threeBetSz(){
+    const mult=isIP?3.0:4.0; // IP smaller, OOP larger
+    return Math.min(s.chips, Math.max(G.toCall*mult, BB*9));
+  }
+  function fourBetSz(){
+    return Math.min(s.chips, Math.max(G.toCall*2.3, BB*20));
+  }
+
+  let type='check', amt=0;
+  const pf=pfScore();
+
+  // ── Live opponent reads (exploit loose/tight/passive players) ──
+  // Returns adjustment multiplier: >1 = play tighter/less bluff, <1 = looser/more bluff
+  function oppRead(targetIdx){
+    const opp=G.seats[targetIdx];
+    if(!opp||opp.handsDealt<5) return {loose:false,tight:false,passive:false,aggro:false,vpip:0.40,ftc:0.50};
+    const hands=opp.handsDealt;
+    const liveVPIP=opp.vpipCount/hands;
+    const livePFR=opp.pfrCount/hands;
+    const liveB3=opp.threeBetOpp>3?opp.threeBetCount/opp.threeBetOpp:0.10;
+    const liveFtc=opp.facedCbet>3?opp.foldToCbet/opp.facedCbet:0.50; // fold-to-cbet
+    const liveAgg=opp.postFlopOpp>3?opp.postFlopBet/opp.postFlopOpp:0.30;
+    const isLoose=liveVPIP>0.52;
+    const isTight=liveVPIP<0.26;
+    const isPassive=(liveVPIP-livePFR)>0.18;
+    const isAggro=livePFR/Math.max(liveVPIP,0.01)>0.82;
+    const foldsToCbet=liveFtc>0.68; // folds >68% to flop bets = exploitable
+    return {loose:isLoose,tight:isTight,passive:isPassive,aggro:isAggro,
+            vpip:liveVPIP,b3:liveB3,ftc:liveFtc,agg:liveAgg,foldsToCbet};
+  }
+
+  // Reads on the preflop opener (whoever raised)
+  // In absence of specific info, use aggregate table read
+  function tableRead(){
+    const active=inHand().filter(i=>i!==idx);
+    if(active.length===0) return {loose:false,tight:false,passive:false,aggro:false};
+    // Average VPIP of active opponents
+    const avg=active.reduce((s,i)=>{
+      const o=G.seats[i];
+      return s+(o.handsDealt>4?o.vpipCount/o.handsDealt:0.40);
+    },0)/active.length;
+    return {loose:avg>0.52,tight:avg<0.28,passive:false,aggro:false,avgVpip:avg};
+  }
+
+  // ══════════════════════════════════════════════════════
+  // PRE-FLOP
+  // ══════════════════════════════════════════════════════
+  if(street==='pre'){
+    const facingOpen = G.toCall > BB;
+    const facing3bet = G.toCall >= BB*3.5;
+    const facing4bet = G.toCall >= BB*10;
+    let openThresh = OPEN_RANGE[style][pos];
+
+    // ── Exploitative pre-flop adjustment based on table reads ──
+    const tr=tableRead();
+    // vs very loose table: tighten open range slightly (they call wide, more variance)
+    if(tr.loose) openThresh = Math.min(openThresh+0.03, 0.75);
+    // vs very tight table: loosen up and steal more
+    if(tr.tight) openThresh = Math.max(openThresh-0.04, 0.12);
+
+    if(!facingOpen){
+      if(pf >= openThresh){
+        type='raise'; amt=openSz();
+      } else if(ca===0){
+        type='check'; // BB free look
+      } else {
+        type='fold';
+      }
+
+    } else if(!facing3bet){
+      // Facing one open — 3-bet/call/fold
+      const valueTbetMin = TBET_RANGE[style][pos];
+      let callMin = CALL_RANGE[style][pos];
+      const P_bluff3b = P.b3;
+
+      // Find the opener — the seat who put in the most preflop
+      const opener=inHand().filter(i=>i!==idx).reduce((best,i)=>
+        G.seats[i].bet>G.seats[best].bet?i:best, inHand().filter(i=>i!==idx)[0]);
+      const oRead=opener!==undefined?oppRead(opener):{};
+
+      // Exploitative: vs tight opener, fold more marginal calls; vs loose, call wider
+      if(oRead.tight) callMin=Math.min(callMin+0.04, 0.55);
+      if(oRead.loose) callMin=Math.max(callMin-0.04, 0.15);
+      // vs passive limper (rare preflop), squeeze more
+      const bluff3bAdj = oRead.passive ? P_bluff3b*2.2 : P_bluff3b*1.8;
+
+      if(pf >= valueTbetMin){
+        type='raise'; amt=threeBetSz();
+      } else if(isSC && pos>=2 && r < bluff3bAdj){
+        type='raise'; amt=threeBetSz();
+      } else if(isPair && pairRank<=6 && pos>=3 && r < P_bluff3b*1.2){
+        type='raise'; amt=threeBetSz();
+      } else if(pf >= callMin){
+        type='call';
+      } else if(ca===0){
+        type='check';
+      } else {
+        type='fold';
+      }
+
+    } else if(!facing4bet){
+      // Facing 3-bet — defend width scales per style's f3b
+      // NIT folds 60% (defends top 40%), MANIAC folds 14% (defends 86%)
+      const defend3b=1-P.f3b;
+      // Base call threshold: derived so each style defends correct % of all hands
+      const callThresh=0.481-defend3b*0.278;
+      // Extra: LAG/MANIAC also defend speculative hands (SC, pairs) vs the tighter threshold
+      const specDefend=defend3b>0.65; // LAG and MANIAC defend speculative
+
+      if(pairRank>=14){ type='raise'; amt=fourBetSz(); } // AA: always 4-bet
+      else if(pairRank===13){ type=(r<0.85)?'raise':'call'; if(type==='raise')amt=fourBetSz(); } // KK
+      else if(pf>=0.82&&r<0.6){ type='raise'; amt=fourBetSz(); } // QQ/AKs mixed 4-bet
+      else if(pf>=0.72){ type='call'; } // JJ, AKo, AQs always call
+      else if(pf>=callThresh){ type='call'; } // style-width: NIT ~top 40%, GTO ~64%, MANIAC ~86%
+      // Loose styles also defend speculative holdings they have implied odds with
+      else if(specDefend&&isSC&&r<defend3b*0.90){ type='call'; } // SC: LAG/MANIAC call wide
+      else if(specDefend&&isPair&&pairRank>=5&&r<defend3b*0.70){ type='call'; } // small/mid pairs
+      else if(isSC&&pos===3&&r<P.b3*0.5){ type='raise'; amt=fourBetSz(); } // BTN 4-bet bluff SC (all styles)
+      // MANIAC calls very wide — any two cards below threshold still call at residual frequency
+      else if(r<(1-P.f3b)*0.55){ type='call'; } // MANIAC: ~86% defend total → residual calls
+      else { type='fold'; }
+
+    } else {
+      // Facing 4-bet — only AA/KK continue
+      if(pairRank===14){ type='raise'; amt=s.chips; }
+      else if(pairRank===13&&r<0.5){ type='call'; }
+      else { type='fold'; }
+    }
+  }
+
+  // ══════════════════════════════════════════════════════
+  // POST-FLOP
+  // ══════════════════════════════════════════════════════
+  else {
+    const rank=postRank();
+    const draws=drawOuts();
+
+    // ── Board texture: wet boards reduce c-bet freq, dry boards increase ──
+    function boardTexture(){
+      if(G.comm.length===0) return {wet:false,dry:true,paired:false};
+      const vals=G.comm.map(c=>cv(c));
+      const suits={};G.comm.forEach(c=>suits[c.s]=(suits[c.s]||0)+1);
+      const maxSuit=Math.max(...Object.values(suits));
+      const sorted=[...vals].sort((a,b)=>a-b);
+      let connected=0;
+      for(let i=0;i<sorted.length-1;i++) if(sorted[i+1]-sorted[i]<=2) connected++;
+      const flushy=maxSuit>=2;
+      const straightish=connected>=1;
+      const paired=new Set(vals).size<vals.length;
+      const wet=flushy&&straightish;
+      const dry=!flushy&&!straightish;
+      return {wet,dry,paired,flushy,straightish};
+    }
+    const board=boardTexture();
+
+    // C-bet gate: board texture + opponent read
+    const cbetGate = board.wet  ? P.cbet*0.58 :
+                     board.dry  ? P.cbet*1.05 :
+                                  P.cbet*0.80;
+
+    // Live reads on all active opponents for post-flop exploitation
+    const tr2=tableRead();
+    // Find if any opponent folds often to cbets (fire more vs them)
+    const oppsFoldToCbet=inHand().filter(i=>i!==idx).some(i=>{
+      const o=oppRead(i); return o.foldsToCbet;
+    });
+    const oppsLoose=tr2.loose;
+
+    // Bluff: more vs tight/fold-heavy, less vs loose callers
+    const bluffAdj = oppsLoose    ? P.bluff*0.62 :
+                     oppsFoldToCbet? P.bluff*1.35 :
+                     tr2.tight    ? P.bluff*1.25 :
+                                    P.bluff;
+    // Cbet: fire more vs players who fold to cbets
+    const cbetAdj  = oppsFoldToCbet? Math.min(cbetGate*1.20, P.cbet*1.05) : cbetGate;
+
+    // Value sizing: go thinner vs loose callers (they call with worse)
+    const valueAdj = oppsLoose ? 1.12 : 1.0;
+
+    const rankEq=[0.18,0.45,0.64,0.74,0.88,0.91,0.95,0.98,0.99,1.0];
+    let eq=(rank>=0)?rankEq[Math.min(rank,9)]:0.18;
+    if(G.comm.length<5){
+      if(draws.fd)  eq+=0.17;
+      if(draws.oesd) eq+=0.15;
+      else if(draws.gs) eq+=0.08;
+    }
+    eq=Math.min(0.99,eq);
+    const mwDisc=Math.max(0,(numActive-2)*0.07);
+    const adjEq=Math.max(0.05,eq-mwDisc);
+    const cr=ca/Math.max(pot,1);
+    const callEq=cr/(1+cr);
+
+    if(street==='flop'){
+      if(ca===0){
+        if(rank>=2){
+          const sz=(rank>=4?0.80:rank===3?0.70:0.60)*valueAdj;
+          type='raise'; amt=R(Math.min(sz,1.0));
+        } else if(rank===1 && r<cbetAdj){
+          type='raise'; amt=R(isIP?0.55:0.65);
+        } else if((draws.fd||draws.oesd) && r<cbetAdj*0.85){
+          type='raise'; amt=R(0.55);
+        } else if(rank===0 && r<bluffAdj && !board.wet){
+          // Pure bluff: avoid on wet boards (likely to get raised)
+          type='raise'; amt=R(0.55);
+        } else {
+          type='check';
+        }
+      } else {
+        if(rank>=3){ type='raise'; amt=R(0.85); }
+        else if(rank===2&&r<0.55){ type='raise'; amt=R(0.75); }
+        else if(adjEq>=callEq+0.06){ type='call'; }
+        else if((draws.fd||draws.oesd)&&adjEq>=callEq){ type='call'; }
+        else if(rank===0&&adjEq<callEq&&r<bluffAdj*0.6){ type='raise'; amt=R(0.80); }
+        else if(adjEq<callEq*0.8){ type='fold'; }
+        else { type='call'; }
+      }
+    }
+
+    else if(street==='turn'){
+      if(ca===0){
+        // Turn: more selective — only continue with good equity
+        const turnGate=cbetGate*0.80; // ~20% tighter on turn
+        if(rank>=3){
+          type='raise'; amt=R(rank>=5?0.90:0.75);
+        } else if(rank===2 && r<turnGate){
+          type='raise'; amt=R(0.65);
+        } else if(rank===1 && isIP && r<turnGate*0.60){
+          type='raise'; amt=R(0.65);
+        } else if((draws.fd||draws.oesd) && r<turnGate*0.70){
+          type='raise'; amt=R(0.70);
+        } else if(rank===0 && r<bluffAdj*0.45 && isIP){
+          type='raise'; amt=R(0.70);
+        } else {
+          type='check';
+        }
+      } else {
+        if(rank>=4){ type='raise'; amt=R(0.90); }
+        else if(rank===3&&r<0.6){ type='raise'; amt=R(0.80); }
+        else if(adjEq>=callEq+0.05){ type='call'; }
+        else if((draws.fd||draws.oesd)&&adjEq>=callEq){ type='call'; }
+        else if(rank<=1&&r<bluffAdj*0.35){ type='raise'; amt=R(0.85); }
+        else if(adjEq<callEq*0.75){ type='fold'; }
+        else { type=(adjEq>=callEq)?'call':'fold'; }
+      }
+    }
+
+    else if(street==='river'){
+      if(ca===0){
+        if(rank>=4){
+          type='raise'; amt=R(rank>=6?1.20:0.90);
+        } else if(rank>=2 && r<P.cbet*0.65*valueAdj){
+          type='raise'; amt=R(0.70);
+        } else if(rank===1 && isIP && r<P.cbet*0.30){
+          type='raise'; amt=R(0.50);
+        } else if(rank===0 && r<bluffAdj*0.40 && isIP){
+          // River bluff: only in position, not vs loose callers
+          type='raise'; amt=R(0.85);
+        } else {
+          type='check';
+        }
+      } else {
+        if(rank>=5){ type='raise'; amt=R(1.10); }
+        else if(rank>=3&&r<0.50){ type='raise'; amt=R(0.90); }
+        else if(rank>=2&&adjEq>=callEq+0.08){ type='call'; }
+        else if(rank===1&&adjEq>=callEq+0.04){ type='call'; }
+        else if(rank===0&&r<bluffAdj*0.28){ type='raise'; amt=R(1.00); }
+        else if(adjEq<callEq){ type='fold'; }
+        else { type='call'; }
+      }
+    }
+  }
+
+  // ── Safety ──
+  if(type==='fold'&&ca===0)          type='check';
+  if(type==='raise'&&amt<=ca)        type=(ca===0?'check':'call');
+  if(type==='raise'&&s.chips<=0)     type=(ca===0?'check':'call');
+  if(type==='call'&&ca>=s.chips)     { type='raise'; amt=s.chips; }
+  if(type==='raise'&&amt>s.chips)    amt=s.chips;
+  if(type==='raise'&&amt<ca+BB&&ca>0) type='call';
+
+  applyAct(idx,type,amt);
+  G.bPos++;
+  setTimeout(nextTurn,260+Math.random()*360);
+}
+
+
+
+function applyAct(idx,type,rAmt=0){
+  const s=G.seats[idx];const ca=Math.max(0,G.toCall-s.bet);let msg='';
+
+  // ════ Stat tracking — feeds both HUD tooltips and self-adaptation ════
+  if(G.phase==='pre'){
+    if((type==='call'||type==='raise'||type==='allin')&&!s._vpipThisHand){
+      s._vpipThisHand=true; s.vpipCount++;
+    }
+    if((type==='raise'||type==='allin')&&!s._pfrThisHand){
+      s._pfrThisHand=true; s.pfrCount++;
+    }
+    if(G.toCall>BB){
+      s._threeBetOppThisHand=true; s.threeBetOpp++;
+      if(type==='raise'||type==='allin'){s._threeBetThisHand=true; s.threeBetCount++;}
+    }
+  }
+  // Post-flop aggression tracking (bet/raise on any street)
+  if(G.phase!=='pre'&&!s._postFlopActed){
+    s._postFlopActed=true; s.postFlopOpp++;
+    if(type==='raise'||type==='allin') s.postFlopBet++;
+  }
+  // C-bet and fold-to-cbet
+  if(G.phase==='flop'){
+    if((type==='raise'||type==='allin')&&!s._cbetOppThisHand){
+      s._cbetOppThisHand=true; s.cbetOpp++;
+      s._cbetThisHand=true; s.cbetCount++;
+    }
+    // Fold-to-cbet: bot faces a flop bet and folds
+    if(ca>0&&!s._facedCbetThisHand){
+      s._facedCbetThisHand=true; s.facedCbet++;
+      if(type==='fold') s.foldToCbet++;
+    }
+  }
+
+  // ════ Self-adaptation: every 8 hands recalibrate runtime tendencies ════
+  // Bots observe their own results and tilt/adjust their effective style profile
+  if(s.handsDealt>0&&s.handsDealt%8===0&&s.handsDealt>0){
+    const hd=s.handsDealt;
+    const myVpip=s.vpipCount/hd;
+    const myPfr=s.pfrCount/hd;
+    const myCbet=s.cbetOpp>2?s.cbetCount/s.cbetOpp:P.cbet;
+    const myFtc=s.facedCbet>2?s.foldToCbet/s.facedCbet:P.f3b;
+    const myAgg=s.postFlopOpp>3?s.postFlopBet/s.postFlopOpp:P.cbet*0.5;
+    // Opponent aggregate reads for counter-adjustment
+    const oppVpips=inHand().filter(i=>i!==idx).map(i=>{
+      const o=G.seats[i]; return o.handsDealt>4?o.vpipCount/o.handsDealt:0.42;
+    });
+    const tableAvg=oppVpips.length?oppVpips.reduce((a,b)=>a+b,0)/oppVpips.length:0.42;
+    // Adaptive drift rules (GTO-exploitative adjustments):
+    // Rule 1: vs very loose table → tighten own VPIP toward base style
+    // Rule 2: vs very tight table → loosen bluffs
+    // Rule 3: if own fold-to-cbet very high → defend more (don't be exploited)
+    // Rule 4: if own cbet getting raised often → slow down cbet freq
+    const looseTable=tableAvg>0.55;
+    const tightTable=tableAvg<0.28;
+    const overFolding=myFtc>0.75; // folding to cbet >75% is too exploitable
+    const underFolding=myFtc<0.20; // rarely folding means opponents fire less
+    // Store adapted values (bounded within personality range)
+    s._adaptVpip = Math.max(P.vpip*0.80, Math.min(P.vpip*1.20,
+      looseTable ? P.vpip*0.93 : tightTable ? P.vpip*1.08 : myVpip*0.85+P.vpip*0.15));
+    s._adaptBluff = Math.max(P.bluff*0.50, Math.min(P.bluff*1.60,
+      tightTable ? P.bluff*1.25 : looseTable ? P.bluff*0.75 : P.bluff));
+    s._adaptCbet = Math.max(P.cbet*0.55, Math.min(P.cbet*1.10,
+      overFolding ? P.cbet*1.05 : underFolding ? P.cbet*0.85 : myCbet*0.5+P.cbet*0.5));
+  }
+
+  if(type==='fold'){s.folded=true;msg=`${s.name} folds.`;SND.fold();}
+  else if(type==='check'){msg=`${s.name} checks.`;SND.check();}
+  else if(type==='call'){
+    const a=Math.min(ca,s.chips);s.chips-=a;s.bet+=a;G.pot+=a;
+    if(s.chips===0)s.allin=true;msg=`${s.name} calls ${a}.`;SND.chip();
+  } else if(type==='raise'){
+    const wanted = rAmt > 0 ? rAmt : (ca + G.minRaise);
+    const tot = Math.min(wanted, s.chips);
+    const newBet = s.bet + tot;
+    const raiseBy = newBet - G.toCall;
+    s.chips -= tot; s.bet = newBet; G.pot += tot;
+    G.toCall = newBet;
+    G.minRaise = Math.max(BB, raiseBy);
+    if(s.chips===0) s.allin=true;
+    const others=G.bQ.slice(G.bPos+1).filter(i=>!G.seats[i].folded&&!G.seats[i].allin&&i!==idx);
+    const fresh=inHand().filter(i=>!G.bQ.slice(0,G.bPos+1).includes(i)&&!G.seats[i].allin&&i!==idx);
+    const re=[...others,...fresh.filter(i=>!others.includes(i))];
+    if(re.length)G.bQ=[...G.bQ.slice(0,G.bPos+1),...re];
+    msg=`${s.name} raises to ${s.bet}.`;SND.chip();
+  } else if(type==='allin'){
+    const a=s.chips;s.chips=0;s.bet+=a;G.pot+=a;s.allin=true;
+    if(s.bet>G.toCall){G.toCall=s.bet;G.minRaise=Math.max(BB,a);}
+    msg=`💥 ${s.name} ALL IN (${a})!`;SND.allin();
+  }
+  setLog(msg);if(msg)chat('sys',msg);
+  renderSeats();updPot();
+  if(idx!==HUMAN)refreshStatTip(idx);
+}
+
+function endBet(){
+  G.seats.forEach(s=>{s.active=false;s.bet=0;});G.toCall=0;G.minRaise=BB;renderSeats();
+  const ph=G.phase;
+  if(ph==='pre'){G.phase='flop';setTimeout(dFlop,450);}
+  else if(ph==='flop'){G.phase='turn';setTimeout(dTurn,450);}
+  else if(ph==='turn'){G.phase='river';setTimeout(dRiver,450);}
+  else if(ph==='river'){G.phase='showdown';setTimeout(showdown,450);}
+}
+function dFlop(){G.deck.pop();G.comm.push(G.deck.pop(),G.deck.pop(),G.deck.pop());SND.deal();updPot();updPlayer();chat('sys','🌊 Flop.');setTimeout(()=>startBet((G.dealer+1)%SEATS),650);}
+function dTurn(){G.deck.pop();G.comm.push(G.deck.pop());SND.deal();updPot();updPlayer();chat('sys','🔄 Turn.');setTimeout(()=>startBet((G.dealer+1)%SEATS),650);}
+function dRiver(){G.deck.pop();G.comm.push(G.deck.pop());SND.deal();updPot();updPlayer();chat('sys','🏁 River.');setTimeout(()=>startBet((G.dealer+1)%SEATS),650);}
+function endHand(){if(inHand().length===1){G.phase='showdown';showdown();}else endBet();}
+
+function showdown(){
+  G.handOver=true;stopTmr();enAct(false);
+  const ih=inHand();
+  if(ih.length===1){
+    const w=G.seats[ih[0]];w.chips+=G.pot;SND.win();renderSeats();updPot();
+    chat('sys',`🏆 ${w.name} wins ${fmt(G.pot)} (everyone folded)!`);
+    setLog(`${w.name} wins ${fmt(G.pot)}!`);
+    showOv(w.isH?'🏆 YOU WIN!':'Hand Over',`${w.name} wins <b>${fmt(G.pot)}</b> chips!<br>Everyone else folded.`);
+    schedNext();return;
+  }
+  const res=ih.map(i=>{const s=G.seats[i];return{i,seat:s,hole:s.hole,folded:s.folded,ev:evalH([...s.hole,...G.comm])};})
+    .sort((a,b)=>b.ev.rank-a.ev.rank||cmpK(b.ev.k,a.ev.k));
+  const top=res[0].ev;
+  const wins=res.filter(r=>r.ev.rank===top.rank&&cmpK(r.ev.k,top.k)===0);
+  const split=Math.floor(G.pot/wins.length);wins.forEach(w=>w.seat.chips+=split);
+  SND.win();
+  // Reveal cards — patch existing seat elements, don't rebuild
+  res.forEach(r=>{
+    if(r.i===HUMAN)return;
+    const el=document.getElementById('s'+r.i);if(!el)return;
+    const hc=el.querySelector('.shole');
+    if(hc)hc.innerHTML=r.hole.map(c=>cardH(c,'sm')).join('');
+    if(wins.find(w=>w.i===r.i))el.classList.add('winner');
+  });
+  renderSeats();updPot();
+  const w=wins[0];
+  let body=res.map(r=>`<b>${r.seat.name}</b>: ${r.ev.name}`).join('<br>');
+  if(wins.length>1)body+=`<br><br>🤝 Split — ${fmt(split)} each`;
+  else body+=`<br><br>🏆 <b>${w.seat.name}</b> wins <b>${fmt(G.pot)}</b> with <b>${w.ev.name}</b>!`;
+  chat('sys',`🏆 ${w.seat.name} wins ${fmt(G.pot)} — ${w.ev.name}`);
+  setLog(`${w.seat.name} wins with ${w.ev.name}!`);
+  showOv(w.seat.isH?'🏆 YOU WIN!':'Hand Over',body);
+  schedNext();
+}
+
+// ════════════════════════════ AUTO NEXT ════════════════════════════
+function schedNext(){
+  let cd=5;const bar=document.getElementById('adt'),cnt=document.getElementById('adc');
+  cnt.textContent=cd;bar.classList.add('show');
+  G.autoTmr=setInterval(()=>{cd--;cnt.textContent=cd;if(cd<=0){clearInterval(G.autoTmr);G.autoTmr=null;bar.classList.remove('show');newHand();}},1000);
+}
+
+// ════════════════════════════ OVERLAY ════════════════════════════
+function showOv(title,body){document.getElementById('ovt').textContent=title;document.getElementById('ovb').innerHTML=body;document.getElementById('ov').classList.add('on');}
+function closeOv(){document.getElementById('ov').classList.remove('on');}
+
+// ════════════════════════════ BUY-IN ════════════════════════════
+function showBuyIn(){document.getElementById('bm').classList.add('on');}
+function closeBuyIn(){document.getElementById('bm').classList.remove('on');}
+function doBuyIn(amt){
+  G.seats[HUMAN].chips+=amt;SND.chip();
+  document.getElementById('mychips').innerHTML=`<em>STACK </em>${fmt(G.seats[HUMAN].chips)}`;
+  chat('sys',`💰 You bought in for ${fmt(amt)} chips.`);
+  closeBuyIn();
+  // Open the waiting room — 3 min to fill, then bots
+  if(G.handOver) wrInit();
+}
+
+// ════════════════════════════ CHAT ════════════════════════════
+const QUIPS=['¡Buena suerte!','Interesting…','Let\'s go!','Nice try!','I\'ve seen better bluffs.','¡Vamos Guatemala!','Calculating odds…','¡Qué mano!','Bold move.','Poker face: on.'];
+function toggleChat(){
+  const c=document.getElementById('chat');
+  c.classList.toggle('open');
+  if(c.classList.contains('open')){
+    const b=document.getElementById('chat-badge');
+    b.classList.remove('on');
+    // scroll to bottom
+    const msgs=document.getElementById('cmsgs');
+    setTimeout(()=>msgs.scrollTop=msgs.scrollHeight,50);
+  }
+}
+
+function chat(type,msg,name=''){
+  const div=document.getElementById('cmsgs');
+  // Show badge on toggle button if chat is closed
+  const chatEl=document.getElementById('chat');
+  if(!chatEl.classList.contains('open')&&type!=='me'){
+    const b=document.getElementById('chat-badge');
+    b.textContent='●';b.classList.add('on');
+  }
+  const el=document.createElement('div');
+  if(type==='sys'){el.className='cm sys';el.textContent=msg;}
+  else if(type==='me'){el.className='cm me';el.innerHTML=`<span class="cn" style="color:#7dd3fc">You:</span> ${msg}`;}
+  else{el.className='cm bot';el.innerHTML=`<span class="cn">${name}:</span> ${msg}`;}
+  div.appendChild(el);div.scrollTop=div.scrollHeight;
+  if(type==='me'&&Math.random()<.5){
+    const b=G.seats[1+~~(Math.random()*8)];
+    setTimeout(()=>chat('bot',QUIPS[~~(Math.random()*QUIPS.length)],b.name),900+Math.random()*1200);
+  }
+}
+function sendChat(){const i=document.getElementById('cin'),m=i.value.trim();if(!m)return;chat('me',m);i.value='';bp(600,.04,.06);}
+
+// ════════════════════════════ WAITING ROOM ════════════════════════════
+const WR_TOTAL = 180; // 3 minutes in seconds
+let wrTimer = null, wrLeft = WR_TOTAL;
+
+// Simulated "real players" who join during the wait — adds realism
+const HUMAN_NAMES = ['Miguel','Valentina','Alejandro','Isabella','Sebastián','Camila','Andrés','Lucía'];
+const HUMAN_EMOJIS = ['👨','👩','🧑','👩‍💼','👨‍💼','🧕','👱','👩‍🦰'];
+
+// Track which seats are real humans vs bots (seat 0 = always local player)
+// wrSeats[i] = null (empty), 'bot', or {name, emoji} (human)
+let wrSeats = [];
+
+function wrInit(){
+  wrSeats = new Array(SEATS).fill(null);
+  wrSeats[0] = {name:'You', emoji:'🫵', isLocal:true};
+  document.getElementById('wroom').classList.add('on');
+  wrRenderSeats();
+  wrLeft = WR_TOTAL;
+  wrTick();
+  wrTimer = setInterval(wrTick, 1000);
+  // Simulate 1–3 humans joining at random intervals during the wait
+  const joinCount = 1 + Math.floor(Math.random() * 3);
+  for(let k = 0; k < joinCount; k++){
+    const delay = 8000 + Math.random() * 90000; // 8s–98s
+    setTimeout(()=>{ if(wrTimer) wrSimJoin(); }, delay);
+  }
+}
+
+function wrSimJoin(){
+  // Find a random empty seat (not 0)
+  const empty = [];
+  for(let i=1;i<SEATS;i++) if(!wrSeats[i]) empty.push(i);
+  if(!empty.length) return;
+  const seat = empty[Math.floor(Math.random()*empty.length)];
+  const idx = Math.floor(Math.random()*HUMAN_NAMES.length);
+  wrSeats[seat] = {name: HUMAN_NAMES[idx], emoji: HUMAN_EMOJIS[idx]};
+  wrRenderSeats();
+  chat('sys', `🙋 ${HUMAN_NAMES[idx]} joined seat ${seat+1}!`);
+  // If table full, start immediately
+  if(wrSeats.every(s=>s!==null)) wrFill(false);
+}
+
+function wrRenderSeats(){
+  const grid = document.getElementById('wr-seats');
+  grid.innerHTML = '';
+  for(let i=0;i<SEATS;i++){
+    const s = wrSeats[i];
+    const div = document.createElement('div');
+    div.className = 'wr-seat' + (s ? (s.isLocal ? ' me' : ' taken') : '');
+    div.innerHTML = s
+      ? `<div class="ws-avatar">${s.emoji}</div>
+         <div class="ws-name">${s.name}</div>
+         <div class="ws-status">${s.isLocal ? '★ YOU' : '✓ Ready'}</div>`
+      : `<div class="ws-avatar" style="opacity:.25">⬜</div>
+         <div class="ws-name" style="color:#333">Empty</div>
+         <div class="ws-status">—</div>`;
+    grid.appendChild(div);
+  }
+}
+
+function wrTick(){
+  wrLeft--;
+  // Update countdown display
+  const m = Math.floor(wrLeft/60), s = wrLeft%60;
+  document.getElementById('wr-cd-num').textContent =
+    `${m}:${String(s).padStart(2,'0')}`;
+  // Arc: 175.9 = circumference of r=28 circle
+  const offset = 175.9 * (1 - wrLeft/WR_TOTAL);
+  document.getElementById('wr-arc').style.strokeDashoffset = offset;
+  // Color shift as time runs low
+  if(wrLeft <= 30) document.getElementById('wr-arc').style.stroke = '#e74c3c';
+  else if(wrLeft <= 60) document.getElementById('wr-arc').style.stroke = '#f39c12';
+  if(wrLeft <= 0){ wrFill(true); }
+}
+
+function wrFill(fillBots){
+  if(wrTimer){ clearInterval(wrTimer); wrTimer = null; }
+  document.getElementById('wroom').classList.remove('on');
+  // Fill remaining seats with bots
+  for(let i=1;i<SEATS;i++){
+    if(!wrSeats[i]) wrSeats[i] = 'bot';
+  }
+  // Apply real-player names/emojis to game seats
+  G.seats.forEach((s,i)=>{
+    if(i===0) return; // local player handled separately
+    const ws = wrSeats[i];
+    if(ws && ws !== 'bot'){
+      s.name = ws.name;
+      s.emoji = ws.emoji;
+      s.isBot = false;
+    } else {
+      s.name = BNAMES[i-1];
+      s.emoji = BEMOJIS[i-1];
+      s.isBot = true;
+    }
+  });
+  if(fillBots)
+    chat('sys','⏱ Time up — bots filling empty seats. Game starting!');
+  else
+    chat('sys','✅ Table full! Game starting!');
+  // Rebuild seat elements to reflect new names/emojis
+  document.querySelectorAll('.seat').forEach(e=>e.remove());
+  initSeatEls();
+  // Start the hand
+  setTimeout(()=>{ if(G.seats[HUMAN].chips > 0) newHand(); }, 600);
+}
+
+function wrStartNow(){
+  wrLeft = 1; // let wrTick fire wrFill on next tick
+  wrTick();
+}
+
+function wrCopyLink(){
+  const url = window.location.href.split('?')[0] + '?table=' + Math.random().toString(36).slice(2,8).toUpperCase();
+  navigator.clipboard.writeText(url).then(()=>{
+    document.getElementById('wr-share-note').textContent = '✓ Link copied to clipboard!';
+    setTimeout(()=>document.getElementById('wr-share-note').textContent='', 3000);
+  }).catch(()=>{
+    document.getElementById('wr-share-note').textContent = url;
+  });
+}
+
+// ════════════════════════════ INIT ════════════════════════════
+initSeats();initSeatEls();updPot();
+chat('sys','🇬🇹 Welcome to Mesa de Poker Guatemala!');
+chat('sys','Buy in to start. A 3-minute window opens for other players to join.');
+showBuyIn();
+</script>
+</body>
+</html>
