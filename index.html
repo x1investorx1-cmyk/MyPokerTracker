@@ -585,6 +585,16 @@ html,body{width:100%;height:100%;overflow:hidden;background:#080f09;font-family:
 .wr-seat .ws-status{font-size:.55rem;color:#555;}
 .wr-seat.taken .ws-status{color:#c9a84c;}
 .wr-seat.me .ws-status{color:#2ecc71;}
+.wr-seat.bot{border-color:rgba(255,255,255,.1);opacity:.7;}
+.ws-kick{
+  position:absolute;top:3px;right:3px;
+  font-size:.6rem;color:#e74c3c;cursor:pointer;
+  width:14px;height:14px;display:flex;align-items:center;justify-content:center;
+  border-radius:50%;border:1px solid rgba(231,76,60,.4);
+  opacity:0;transition:opacity .15s;
+}
+.wr-seat:hover .ws-kick{opacity:1;}
+.wr-seat{position:relative;}
 
 /* Countdown ring */
 #wr-countdown{display:flex;flex-direction:column;align-items:center;gap:6px;}
@@ -946,7 +956,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#080f09;font-family:
       </div>
       <div class="fb"></div>
     </div>
-    <div id="wr-title">Mesa de Poker </div>
+    <div id="wr-title">Mesa de Poker Guatemala</div>
     <div id="wr-sub">Waiting for players…</div>
 
     <!-- Seat grid -->
@@ -961,7 +971,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#080f09;font-family:
             stroke-dasharray="175.9" stroke-dashoffset="0"
             stroke-linecap="round" transform="rotate(-90 32 32)"/>
         </svg>
-        <div id="wr-cd-num">5:00</div>
+        <div id="wr-cd-num">3:00</div>
       </div>
       <div id="wr-cd-label">Bots fill empty seats automatically</div>
     </div>
@@ -2193,45 +2203,107 @@ function chat(type,msg,name=''){
 function sendChat(){const i=document.getElementById('cin'),m=i.value.trim();if(!m)return;chat('me',m);i.value='';bp(600,.04,.06);}
 
 // ════════════════════════════ WAITING ROOM ════════════════════════════
-const WR_TOTAL = 180; // 3 minutes in seconds
+// ═══════════════════════════════════════════════════════════════════
+// ROOM SYSTEM — Vercel API-backed multiplayer with bot-kick support
+// ═══════════════════════════════════════════════════════════════════
+
+// ── Config ──
+// IMPORTANT: After deploying to Vercel, replace this with your actual URL
+const API_BASE = (()=>{
+  // Auto-detect: if running on Vercel deployment, use same origin
+  const h = window.location.hostname;
+  if(h && h !== 'localhost' && !h.includes('about') && !h.includes('srcdoc')){
+    return window.location.origin;
+  }
+  // Fallback: replace with your Vercel URL after deployment
+  // e.g. 'https://poker-guatemala.vercel.app'
+  return window.POKER_API_URL || null;
+})();
+
+const WR_TOTAL = 180;
 let wrTimer = null, wrLeft = WR_TOTAL;
-
-// Simulated "real players" who join during the wait — adds realism
-const HUMAN_NAMES = ['Miguel','Valentina','Alejandro','Isabella','Sebastián','Camila','Andrés','Lucía'];
-const HUMAN_EMOJIS = ['👨','👩','🧑','👩‍💼','👨‍💼','🧕','👱','👩‍🦰'];
-
-// Track which seats are real humans vs bots (seat 0 = always local player)
-// wrSeats[i] = null (empty), 'bot', or {name, emoji} (human)
 let wrSeats = [];
+let _pollTimer = null;
 
+// ── Stable player ID (persisted across sessions) ──
+const PLAYER_ID = (()=>{
+  let id = localStorage.getItem('pokerPlayerId');
+  if(!id){ id = 'p_' + Math.random().toString(36).slice(2,10); localStorage.setItem('pokerPlayerId',id); }
+  return id;
+})();
+const PLAYER_NAME_KEY = 'pokerPlayerName';
+
+// ── Table ID from URL or generate new ──
+const _urlTable = new URLSearchParams(window.location.search).get('table');
+const TABLE_ID = (_urlTable || sessionStorage.getItem('pokerTableId') || (()=>{
+  const id = Math.random().toString(36).slice(2,8).toUpperCase();
+  sessionStorage.setItem('pokerTableId', id);
+  return id;
+})()).toUpperCase();
+if(!_urlTable) sessionStorage.setItem('pokerTableId', TABLE_ID);
+
+// ── API helper ──
+async function roomAPI(params){
+  if(!API_BASE) return null; // offline mode
+  try{
+    const r = await fetch(API_BASE+'/api/room', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({...params, tableId: TABLE_ID}),
+    });
+    return await r.json();
+  }catch(e){ return null; }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// WAITING ROOM
+// ═══════════════════════════════════════════════════════════════════
 function wrInit(){
   wrSeats = new Array(SEATS).fill(null);
-  wrSeats[0] = {name:'You', emoji:'🫵', isLocal:true};
+  wrSeats[0] = {type:'human', name: G.seats[HUMAN].name||'You', emoji:'🫵', isLocal:true};
   document.getElementById('wroom').classList.add('on');
+
+  // Pre-fill remaining seats with bots locally
+  for(let i=1;i<SEATS;i++){
+    wrSeats[i] = {type:'bot', name:BNAMES[i-1], emoji:BEMOJIS[i-1]};
+  }
   wrRenderSeats();
   wrLeft = WR_TOTAL;
   wrTick();
   wrTimer = setInterval(wrTick, 1000);
-  // Simulate 1–3 humans joining at random intervals during the wait
-  const joinCount = 1 + Math.floor(Math.random() * 3);
-  for(let k = 0; k < joinCount; k++){
-    const delay = 8000 + Math.random() * 90000; // 8s–98s
-    setTimeout(()=>{ if(wrTimer) wrSimJoin(); }, delay);
+
+  // Register with API and start polling
+  if(API_BASE){
+    roomAPI({action:'setHost', playerId:PLAYER_ID,
+      playerName: G.seats[HUMAN].name||'You', playerEmoji:'🫵'})
+      .then(res=>{ if(res?.ok) _syncSeats(res.room); });
+    _pollTimer = setInterval(_pollRoom, 4000);
   }
 }
 
-function wrSimJoin(){
-  // Find a random empty seat (not 0)
-  const empty = [];
-  for(let i=1;i<SEATS;i++) if(!wrSeats[i]) empty.push(i);
-  if(!empty.length) return;
-  const seat = empty[Math.floor(Math.random()*empty.length)];
-  const idx = Math.floor(Math.random()*HUMAN_NAMES.length);
-  wrSeats[seat] = {name: HUMAN_NAMES[idx], emoji: HUMAN_EMOJIS[idx]};
-  wrRenderSeats();
-  chat('sys', `🙋 ${HUMAN_NAMES[idx]} joined seat ${seat+1}!`);
-  // If table full, start immediately
-  if(wrSeats.every(s=>s!==null)) wrFill(false);
+async function _pollRoom(){
+  const res = await roomAPI({action:'get'});
+  if(!res?.ok) return;
+  _syncSeats(res.room);
+}
+
+function _syncSeats(room){
+  if(!room?.seats) return;
+  let changed = false;
+  room.seats.forEach((rs,i)=>{
+    if(i===0) return; // local player always seat 0
+    if(!rs) return;
+    const was = wrSeats[i];
+    if(rs.type==='human' && rs.playerId !== PLAYER_ID){
+      // A real human joined this seat
+      if(!was || was.type==='bot'){
+        wrSeats[i] = {type:'human', name:rs.name, emoji:rs.emoji||'🙋'};
+        chat('sys', `🙋 ${rs.name} joined seat ${i+1}!`);
+        changed = true;
+      }
+    }
+  });
+  if(changed) wrRenderSeats();
 }
 
 function wrRenderSeats(){
@@ -2239,86 +2311,229 @@ function wrRenderSeats(){
   grid.innerHTML = '';
   for(let i=0;i<SEATS;i++){
     const s = wrSeats[i];
+    const isBot = !s || s.type==='bot';
+    const isMe = s?.isLocal;
     const div = document.createElement('div');
-    div.className = 'wr-seat' + (s ? (s.isLocal ? ' me' : ' taken') : '');
+    div.className = 'wr-seat' + (s ? (isMe?' me': isBot?' bot':' taken') : '');
     div.innerHTML = s
-      ? `<div class="ws-avatar">${s.emoji}</div>
+      ? `<div class="ws-avatar">${s.emoji||'🤖'}</div>
          <div class="ws-name">${s.name}</div>
-         <div class="ws-status">${s.isLocal ? '★ YOU' : '✓ Ready'}</div>`
-      : `<div class="ws-avatar" style="opacity:.25">⬜</div>
-         <div class="ws-name" style="color:#333">Empty</div>
-         <div class="ws-status">—</div>`;
+         <div class="ws-status">${isMe?'★ YOU': isBot?'🤖 Bot':'✓ Ready'}</div>
+         ${isBot&&!isMe&&API_BASE ? `<div class="ws-kick" onclick="wrKickBot(${i})" title="Kick bot — frees seat for a human player">✕</div>` : ''}`
+      : `<div class="ws-avatar" style="opacity:.2">⬜</div>
+         <div class="ws-name" style="color:#444">Empty</div>
+         <div class="ws-status">waiting…</div>`;
     grid.appendChild(div);
+  }
+}
+
+async function wrKickBot(seatIdx){
+  const res = await roomAPI({action:'kickBot', playerId:PLAYER_ID, seatIndex:seatIdx});
+  if(res?.ok){
+    wrSeats[seatIdx] = null;
+    wrRenderSeats();
+    chat('sys', `🪑 Seat ${seatIdx+1} opened — waiting for a human player.`);
   }
 }
 
 function wrTick(){
   wrLeft--;
-  // Update countdown display
-  const m = Math.floor(wrLeft/60), s = wrLeft%60;
-  document.getElementById('wr-cd-num').textContent =
-    `${m}:${String(s).padStart(2,'0')}`;
-  // Arc: 175.9 = circumference of r=28 circle
-  const offset = 175.9 * (1 - wrLeft/WR_TOTAL);
-  document.getElementById('wr-arc').style.strokeDashoffset = offset;
-  // Color shift as time runs low
-  if(wrLeft <= 30) document.getElementById('wr-arc').style.stroke = '#e74c3c';
-  else if(wrLeft <= 60) document.getElementById('wr-arc').style.stroke = '#f39c12';
-  if(wrLeft <= 0){ wrFill(true); }
+  const m=Math.floor(wrLeft/60), s=wrLeft%60;
+  document.getElementById('wr-cd-num').textContent=`${m}:${String(s).padStart(2,'0')}`;
+  const offset=175.9*(1-wrLeft/WR_TOTAL);
+  document.getElementById('wr-arc').style.strokeDashoffset=offset;
+  if(wrLeft<=30) document.getElementById('wr-arc').style.stroke='#e74c3c';
+  else if(wrLeft<=60) document.getElementById('wr-arc').style.stroke='#f39c12';
+  if(wrLeft<=0) wrFill(true);
 }
 
 function wrFill(fillBots){
-  if(wrTimer){ clearInterval(wrTimer); wrTimer = null; }
+  if(wrTimer){ clearInterval(wrTimer); wrTimer=null; }
+  if(_pollTimer){ clearInterval(_pollTimer); _pollTimer=null; }
   document.getElementById('wroom').classList.remove('on');
-  // Fill remaining seats with bots
-  for(let i=1;i<SEATS;i++){
-    if(!wrSeats[i]) wrSeats[i] = 'bot';
-  }
-  // Apply real-player names/emojis to game seats
+  // Apply seat names to game
   G.seats.forEach((s,i)=>{
-    if(i===0) return; // local player handled separately
+    if(i===0) return;
     const ws = wrSeats[i];
-    if(ws && ws !== 'bot'){
-      s.name = ws.name;
-      s.emoji = ws.emoji;
-      s.isBot = false;
+    if(ws && ws.type==='human'){
+      s.name=ws.name; s.emoji=ws.emoji||'🙋'; s.isBot=false;
     } else {
-      s.name = BNAMES[i-1];
-      s.emoji = BEMOJIS[i-1];
-      s.isBot = true;
+      s.name=BNAMES[i-1]; s.emoji=BEMOJIS[i-1]; s.isBot=true;
     }
   });
-  if(fillBots)
-    chat('sys','⏱ Time up — bots filling empty seats. Game starting!');
-  else
-    chat('sys','✅ Table full! Game starting!');
-  // Rebuild seat elements to reflect new names/emojis
+  if(fillBots) chat('sys','⏱ Time up — bots fill empty seats. Game starting!');
+  else chat('sys','✅ Table full! Game starting!');
   document.querySelectorAll('.seat').forEach(e=>e.remove());
   initSeatEls();
-  // Start the hand
-  setTimeout(()=>{ if(G.seats[HUMAN].chips > 0) newHand(); }, 600);
+  setTimeout(()=>{ if(G.seats[HUMAN].chips>0) newHand(); }, 600);
 }
 
-function wrStartNow(){
-  wrLeft = 1; // let wrTick fire wrFill on next tick
-  wrTick();
-}
+function wrStartNow(){ wrLeft=1; wrTick(); }
 
+// ═══════════════════════════════════════════════════════════════════
+// INVITE LINK
+// ═══════════════════════════════════════════════════════════════════
 function wrCopyLink(){
-  const url = window.location.href.split('?')[0] + '?table=' + Math.random().toString(36).slice(2,8).toUpperCase();
-  navigator.clipboard.writeText(url).then(()=>{
-    document.getElementById('wr-share-note').textContent = '✓ Link copied to clipboard!';
-    setTimeout(()=>document.getElementById('wr-share-note').textContent='', 3000);
-  }).catch(()=>{
-    document.getElementById('wr-share-note').textContent = url;
-  });
+  // Build the share URL
+  let base = null;
+
+  // Priority 1: Vercel deployment URL (most reliable)
+  if(API_BASE && !API_BASE.includes('localhost')){
+    base = API_BASE;
+  }
+
+  // Priority 2: Try parent frame (when embedded in iframe/Claude)
+  if(!base){
+    try{
+      if(window.self !== window.top){
+        const p = window.parent.location.href;
+        if(p && !p.startsWith('about:') && !p.startsWith('blob:'))
+          base = p.split('?')[0];
+      }
+    }catch(e){}
+  }
+
+  // Priority 3: Current location if it's a real URL
+  if(!base){
+    const h = window.location.href;
+    if(!h.startsWith('about:') && !h.startsWith('blob:') && !h.includes('srcdoc'))
+      base = h.split('?')[0];
+  }
+
+  const url = base ? (base.replace(/\/$/,'') + '/?table=' + TABLE_ID) : null;
+  const note = document.getElementById('wr-share-note');
+
+  // Always show the link visibly in a copyable input
+  note.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'margin-top:6px;';
+
+  if(!url || !base){
+    // No URL available — show table ID for manual sharing
+    wrap.innerHTML = `
+      <div style="font-family:'Cinzel',serif;font-size:.52rem;color:#e8c96a;margin-bottom:4px;">
+        Share this Table ID with friends:
+      </div>
+      <div style="font-family:monospace;font-size:1.1rem;color:#fff;letter-spacing:4px;
+                  background:#06100a;border:1px solid #c9a84c;border-radius:6px;
+                  padding:8px 16px;text-align:center;cursor:pointer;"
+           onclick="navigator.clipboard?.writeText('${TABLE_ID}').catch(()=>{}); this.textContent='✓ ${TABLE_ID}';">
+        ${TABLE_ID}
+      </div>
+      <div style="font-family:'Cinzel',serif;font-size:.45rem;color:#666;margin-top:4px;">
+        Friends go to the game URL and enter this ID
+      </div>`;
+    note.appendChild(wrap);
+    return;
+  }
+
+  // Show full URL in copyable input + COPY button
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:5px;align-items:center;';
+  const inp = document.createElement('input');
+  inp.type='text'; inp.value=url; inp.readOnly=true;
+  inp.style.cssText='flex:1;font-family:monospace;font-size:.50rem;padding:5px 7px;'
+    +'background:#06100a;border:1px solid #c9a84c;border-radius:5px;'
+    +'color:#e8c96a;outline:none;min-width:0;';
+  inp.onclick=()=>{ inp.select(); inp.setSelectionRange(0,9999); };
+
+  const btn = document.createElement('button');
+  btn.textContent='COPY';
+  btn.style.cssText='font-family:"Cinzel",serif;font-size:.50rem;padding:5px 9px;'
+    +'background:linear-gradient(135deg,#c9a84c,#7a5a18);color:#1a0f00;'
+    +'border:none;border-radius:5px;cursor:pointer;font-weight:700;white-space:nowrap;';
+
+  function doCopy(){
+    inp.select(); inp.setSelectionRange(0,9999);
+    const ok = ()=>{ btn.textContent='✓'; btn.style.background='#2ecc71'; setTimeout(()=>{ btn.textContent='COPY'; btn.style.background='linear-gradient(135deg,#c9a84c,#7a5a18)'; },2000); };
+    if(navigator.clipboard && window.isSecureContext){
+      navigator.clipboard.writeText(url).then(ok).catch(()=>{ try{document.execCommand('copy');ok();}catch(e){} });
+    } else {
+      try{ document.execCommand('copy'); ok(); }catch(e){}
+    }
+  }
+  btn.onclick = doCopy;
+  row.appendChild(inp); row.appendChild(btn);
+
+  const hint = document.createElement('div');
+  hint.style.cssText='font-family:"Cinzel",serif;font-size:.44rem;color:#555;margin-top:3px;';
+  hint.textContent='Each player opens this link on their own device';
+
+  wrap.appendChild(row); wrap.appendChild(hint);
+  note.appendChild(wrap);
+  inp.select(); inp.setSelectionRange(0,9999);
+  doCopy(); // auto-attempt copy on button click
 }
 
-// ════════════════════════════ INIT ════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
+// JOIN FLOW (for players arriving via invite link)
+// ═══════════════════════════════════════════════════════════════════
+function _handleInviteJoin(tableId){
+  const savedName = localStorage.getItem(PLAYER_NAME_KEY) || '';
+  const modal = document.createElement('div');
+  modal.id = 'join-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;'
+    +'justify-content:center;background:rgba(0,0,0,.88);';
+  modal.innerHTML = `
+    <div style="background:#0a180e;border:1px solid #c9a84c;border-radius:12px;
+                padding:28px 32px;max-width:320px;width:90%;text-align:center;
+                font-family:'Cinzel',serif;color:#f5efe0;">
+      <div style="font-size:1.0rem;color:#e8c96a;margin-bottom:4px;letter-spacing:2px;">🃏 JOIN TABLE</div>
+      <div style="font-size:.58rem;color:#888;margin-bottom:16px;letter-spacing:1px;">
+        TABLE <span style="color:#c9a84c;font-weight:700;">${tableId}</span>
+      </div>
+      <input id="join-name-input" type="text" maxlength="14"
+        value="${savedName}"
+        placeholder="Your name…"
+        style="width:100%;padding:9px 12px;font-family:'Cinzel',serif;font-size:.72rem;
+               background:#06100a;border:1px solid #c9a84c;border-radius:6px;
+               color:#f5efe0;text-align:center;outline:none;
+               margin-bottom:12px;box-sizing:border-box;"/>
+      <button id="join-confirm-btn" onclick="_joinConfirm()"
+        style="width:100%;padding:10px;font-family:'Cinzel',serif;font-size:.7rem;
+               background:linear-gradient(135deg,#c9a84c,#7a5a18);color:#1a0f00;
+               border:none;border-radius:7px;cursor:pointer;font-weight:700;letter-spacing:1px;">
+        JOIN GAME
+      </button>
+    </div>`;
+  document.body.appendChild(modal);
+  const inp = document.getElementById('join-name-input');
+  inp.focus(); inp.select();
+  inp.addEventListener('keydown', e=>{ if(e.key==='Enter') _joinConfirm(); });
+}
+
+async function _joinConfirm(){
+  const nameEl = document.getElementById('join-name-input');
+  const name = (nameEl?.value.trim()) || 'Player';
+  localStorage.setItem(PLAYER_NAME_KEY, name);
+  document.getElementById('join-modal')?.remove();
+  G.seats[HUMAN].name = name;
+
+  // Register with API — kicks a bot if table full
+  if(API_BASE){
+    const res = await roomAPI({action:'join', playerId:PLAYER_ID,
+      playerName:name, playerEmoji:'🙋'});
+    if(res?.ok){
+      chat('sys', `🇬🇹 Welcome, ${name}! Joined table ${TABLE_ID}${res.botKicked?' — a bot was removed to make room':''}.`);
+    }
+  } else {
+    chat('sys', `🇬🇹 Welcome, ${name}! Table ID: ${TABLE_ID}`);
+  }
+  chat('sys','Buy in to take your seat.');
+  showBuyIn();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════
 initSeats();initSeatEls();updPot();
-chat('sys','🇬🇹 Welcome to Mesa de Poker Guatemala!');
-chat('sys','Buy in to start. A 3-minute window opens for other players to join.');
-showBuyIn();
+if(_urlTable){
+  _handleInviteJoin(_urlTable);
+} else {
+  chat('sys','🇬🇹 Welcome to Mesa de Poker Guatemala!');
+  chat('sys','Buy in to start. Copy the invite link to bring friends — bots fill empty seats automatically.');
+  showBuyIn();
+}
 </script>
 </body>
 </html>
