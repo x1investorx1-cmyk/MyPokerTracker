@@ -22,6 +22,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#080f09;font-family:
   width:100vw;height:100vh;display:flex;flex-direction:column;
   background:radial-gradient(ellipse 130% 100% at 50% 55%,#111d13 0%,#06100a 100%);
   position:relative;
+  overflow:hidden;
 }
 #room::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.3;
   background:repeating-linear-gradient(60deg,transparent,transparent 44px,rgba(255,255,255,.018) 44px,rgba(255,255,255,.018) 45px),
@@ -55,19 +56,17 @@ html,body{width:100%;height:100%;overflow:hidden;background:#080f09;font-family:
 #sbtn{background:none;border:none;color:var(--gold);font-size:1rem;cursor:pointer;padding:2px 5px;}
 
 /* ─── MAIN ─── */
-#main{flex:1;display:flex;min-height:0;position:relative;}
+#main{flex:1;min-height:0;display:flex;position:relative;overflow:hidden;}
 
 /* ─── TABLE AREA ─── */
-#tarea{flex:1;display:flex;align-items:center;justify-content:center;position:relative;min-height:0;overflow:visible;}
+#tarea{flex:1;display:flex;align-items:center;justify-content:center;position:relative;min-height:0;overflow:hidden;}
 
 /* ─── TABLE WRAP — 8-max with room for top seat ─── */
 #twrap{
   position:relative;
   width:min(900px,96vw);
-  /* Extra vertical space: padding-top pushes table down so top seat has room */
-  height:min(560px,62vw);
-  padding-top:48px;      /* space for top seat box above rail */
-  padding-bottom:8px;
+  height:min(480px,54vw);   /* shorter so bottom seats don't overlap player-strip */
+  padding-top:44px;
   box-sizing:border-box;
 }
 
@@ -245,40 +244,87 @@ html,body{width:100%;height:100%;overflow:hidden;background:#080f09;font-family:
 #street-lbl{font-family:'Cinzel',serif;font-size:.52rem;color:var(--dim);letter-spacing:3px;}
 
 /* ─── PLAYER CARD STRIP (between table and action bar) ─── */
+/* ═══ PLAYER STRIP — always visible, flex-shrink:0 ═══ */
 #player-strip{
-  display:flex;flex-direction:column;align-items:center;gap:3px;
-  padding:6px 0 4px;
-  background:linear-gradient(180deg,rgba(0,0,0,.0),rgba(0,0,0,.45));
   flex-shrink:0;
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  justify-content:center;
+  gap:20px;
+  padding:10px 20px 8px;
+  background:linear-gradient(180deg,rgba(0,0,0,.0),rgba(0,0,0,.7));
+  border-top:1px solid rgba(255,255,255,.05);
+  position:relative;
+  z-index:30;
 }
-#phole{display:flex;gap:10px;}
+/* Card tray */
+#phole{
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+/* Player hole cards — large white cards, always on top */
+#phole .card{
+  width:58px !important;
+  height:82px !important;
+  font-size:1.2rem !important;
+  border-radius:6px !important;
+  border:2px solid rgba(201,168,76,.8) !important;
+  box-shadow:0 0 14px rgba(201,168,76,.5), 0 4px 16px rgba(0,0,0,.9) !important;
+  background:#fff !important;
+  color:#111;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:2px !important;
+  position:relative;
+  z-index:35;
+}
+#phole .card.red{ color:#c8102e !important; }
+#phole .card .cr{ font-size:1.1rem !important; font-weight:700 !important; line-height:1 !important; }
+#phole .card .cs{ font-size:1.3rem !important; line-height:1 !important; }
+/* Hand name badge */
 #phandname{
-  font-family:'Cinzel',serif;font-size:.6rem;color:var(--gold);letter-spacing:2px;
-  background:rgba(0,0,0,.6);padding:2px 10px;border-radius:3px;
-  opacity:0;transition:opacity .3s;
+  font-family:'Cinzel',serif;
+  font-size:11px;
+  color:var(--gold);
+  letter-spacing:2px;
+  text-transform:uppercase;
+  background:rgba(0,0,0,.7);
+  padding:4px 14px;
+  border-radius:4px;
+  border:1px solid rgba(201,168,76,.3);
+  opacity:0;
+  transition:opacity .3s;
+  white-space:nowrap;
 }
-#phandname.show{opacity:1;}
+#phandname.show{ opacity:1; }
 
 /* ─── PLAYER STATS PANEL (hover on player-strip) ─── */
-#player-strip{position:relative;}
+#player-strip{position:relative;flex-shrink:0;z-index:30;}
 #my-stats{
   display:none;
   position:absolute;
-  bottom:calc(100% + 6px);
+  bottom:calc(100% + 8px);
   left:50%;transform:translateX(-50%);
-  background:rgba(5,15,8,.97);
-  border:1px solid rgba(125,216,248,.35);
-  border-radius:8px;padding:9px 12px;
-  width:170px;z-index:300;
+  background:rgba(4,14,7,.97);
+  border:1px solid rgba(125,216,248,.4);
+  border-radius:7px;
+  padding:10px 13px;
+  width:150px;
+  z-index:400;
   pointer-events:none;
-  box-shadow:0 4px 24px rgba(0,0,0,.85);
+  box-shadow:0 4px 24px rgba(0,0,0,.9);
+  font-family:'Cinzel',serif;
 }
 #player-strip:hover #my-stats{display:block;}
 
 /* ─── ACTION BAR ─── */
 /* ════ ACTION BAR — WPT Gold style ════ */
 #abar{
-  flex-shrink:0;position:relative;z-index:20;
+  flex-shrink:0;position:relative;z-index:30;
   background:linear-gradient(0deg,rgba(0,0,0,.88) 0%,rgba(5,12,8,.75) 100%);
   border-top:1px solid rgba(255,255,255,.07);
   padding:10px 16px 12px;
@@ -417,56 +463,76 @@ html,body{width:100%;height:100%;overflow:hidden;background:#080f09;font-family:
 #rbetbtn:hover{background:linear-gradient(180deg,#b86c0c,#9a5c0a);}
 
 /* ─── STAT TOOLTIP ─── */
+/* ── Compact stat badge — appears on seat hover ── */
 .stat-tip{
   display:none;
   position:absolute;
-  background:rgba(4,10,6,.97);
-  border:1px solid rgba(201,168,76,.28);
-  border-radius:5px;
-  padding:4px 5px;
-  width:96px;
-  z-index:300;
+  background:rgba(4,14,7,.97);
+  border:1px solid rgba(201,168,76,.45);
+  border-radius:7px;
+  padding:8px 11px;
+  width:130px;
+  z-index:400;
   pointer-events:none;
-  box-shadow:0 2px 12px rgba(0,0,0,.9);
-  bottom:calc(100% + 5px);
+  box-shadow:0 4px 20px rgba(0,0,0,.9);
+  bottom:calc(100% + 8px);
   left:50%;
   transform:translateX(-50%);
 }
-/* Flip below for top seats (3,4 near dealer chair) */
-.stat-tip.tip-below{
-  bottom:auto;
-  top:calc(100% + 6px);
-}
-/* Left-edge seats: anchor to left side of seat so tooltip goes rightward */
-.stat-tip.tip-right{
-  left:0;
-  transform:none;
-}
-/* Right-edge seats: anchor to right side so tooltip goes leftward */
-.stat-tip.tip-left{
-  left:auto;
-  right:0;
-  transform:none;
-}
-.seat:hover .stat-tip{display:block;}
+.stat-tip.tip-below{ bottom:auto; top:calc(100% + 8px); }
+.stat-tip.tip-right{ left:0; transform:none; }
+.stat-tip.tip-left { left:auto; right:0; transform:none; }
+.seat:hover .stat-tip{ display:block; }
 .stat-tip-name{
-  font-family:'Cinzel',serif;font-size:.44rem;color:#e8c96a;
-  letter-spacing:.3px;margin-bottom:3px;text-align:center;
-  border-bottom:1px solid rgba(201,168,76,.15);padding-bottom:2px;
+  font-family:'Cinzel',serif;
+  font-size:10px;
+  color:#e8c96a;
+  letter-spacing:.5px;
+  text-align:center;
+  margin-bottom:6px;
+  padding-bottom:4px;
+  border-bottom:1px solid rgba(201,168,76,.2);
 }
 .stat-row{
-  display:flex;align-items:center;justify-content:space-between;
-  margin:1.5px 0;gap:3px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin:3px 0;
 }
-.stat-lbl{font-family:'Cinzel',serif;font-size:.38rem;color:#666;letter-spacing:.2px;white-space:nowrap;}
-.stat-val{font-family:'Cinzel',serif;font-size:.44rem;font-weight:700;color:#e8c96a;min-width:20px;text-align:right;}
-.stat-bar-wrap{flex:1;height:2px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;}
-.stat-bar{height:100%;border-radius:2px;transition:width .3s;}
-.stat-bar.vpip{background:linear-gradient(90deg,#3498db,#5dade2);}
-.stat-bar.pfr {background:linear-gradient(90deg,#e67e22,#f5b041);}
-.stat-bar.b3  {background:linear-gradient(90deg,#8e44ad,#bb8fce);}
-.stat-bar.af  {background:linear-gradient(90deg,#27ae60,#58d68d);}
-.stat-hands{font-family:'Cinzel',serif;font-size:.36rem;color:#3a3a3a;text-align:center;margin-top:2px;}
+.stat-lbl{
+  font-family:'Cinzel',serif;
+  font-size:9px;
+  color:#888;
+  letter-spacing:.3px;
+}
+.stat-val{
+  font-family:'Cinzel',serif;
+  font-size:11px;
+  font-weight:700;
+  color:#f5e090;
+  min-width:32px;
+  text-align:right;
+}
+.stat-bar-wrap{
+  flex:1;
+  height:3px;
+  background:rgba(255,255,255,.08);
+  border-radius:2px;
+  overflow:hidden;
+  margin:0 6px;
+}
+.stat-bar{ height:100%; border-radius:2px; transition:width .3s; }
+.stat-bar.vpip{ background:linear-gradient(90deg,#3498db,#5dade2); }
+.stat-bar.pfr  { background:linear-gradient(90deg,#e67e22,#f5b041); }
+.stat-bar.b3   { background:linear-gradient(90deg,#8e44ad,#bb8fce); }
+.stat-bar.af   { background:linear-gradient(90deg,#27ae60,#58d68d); }
+.stat-hands{
+  font-family:'Cinzel',serif;
+  font-size:8px;
+  color:#555;
+  text-align:center;
+  margin-top:5px;
+}
 
 
 /* The chip circle — small, hugs the seat */
@@ -1037,9 +1103,10 @@ function initSeats(){
       foldToCbet:0,facedCbet:0,   // fold-to-cbet tracking
       postFlopBet:0,postFlopOpp:0, // post-flop aggression
       showdownWin:0,showdownTotal:0, // showdown win rate
+      totalIn:0,  // total chips put in pot this hand (for side-pot calc)
       // ── Runtime adaptive profile ──
       // Starts at base style, drifts based on observed tendencies
-      _adaptVpip:null,_adaptBluff:null,_adaptCbet:null,
+      _adaptVpip:null,_adaptBluff:null,_adaptCbet:null,_adaptAgg:null,
       totalWon:0,handsWon:0,
     });
 }
@@ -1050,6 +1117,12 @@ function cardH(c,sz='md'){
   if(!c)return`<div class="card ${sz} ph"></div>`;
   const red=c.s==='♥'||c.s==='♦';
   return`<div class="card ${sz} ${red?'red':'black'} deal"><span class="cr">${c.r}</span><span class="cs">${c.s}</span></div>`;
+}
+// Large version specifically for the player's own cards in #phole
+function cardHLg(c){
+  if(!c)return`<div class="card ph" style="width:66px;height:92px;"></div>`;
+  const red=c.s==='♥'||c.s==='♦';
+  return`<div class="card deal ${red?'red':'black'}" style="width:66px;height:92px;font-size:1.3rem;background:#fff;border:2px solid rgba(201,168,76,.7);box-shadow:0 0 16px rgba(201,168,76,.4),0 6px 20px rgba(0,0,0,.8);border-radius:7px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;"><span class="cr" style="font-size:1.2rem;line-height:1;font-weight:700;">${c.r}</span><span class="cs" style="font-size:1.35rem;line-height:1;">${c.s}</span></div>`;
 }
 function backH(sz='md'){return`<div class="card ${sz} back deal"></div>`;}
 
@@ -1099,35 +1172,24 @@ function buildSeatEl(i){
 
 function buildStatTip(i, tipBelow=false, tipHorz=''){
   const s=G.seats[i];
-  const hands=Math.max(1,s.handsDealt);
-  const vpip=hands>0?Math.round(s.vpipCount/hands*100):0;
-  const pfr=hands>0?Math.round(s.pfrCount/hands*100):0;
-  const b3opp=Math.max(1,s.threeBetOpp);
-  const b3=s.threeBetOpp>0?Math.round(s.threeBetCount/b3opp*100):0;
-  const af=vpip>0?Math.round((pfr/vpip)*100):0;
+  const hd=Math.max(1,s.handsDealt);
+  const vpip=hd>2?Math.round(s.vpipCount/hd*100):null;
+  const pfr =hd>2?Math.round(s.pfrCount/hd*100):null;
+  const b3  =s.threeBetOpp>2?Math.round(s.threeBetCount/s.threeBetOpp*100):null;
+  const af  =hd>2&&s.postFlopOpp>2?Math.round(s.postFlopBet/s.postFlopOpp*100):null;
+  const dash='—';
   function bar(cls,pct){
-    return `<div class="stat-bar-wrap"><div class="stat-bar ${cls}" style="width:${Math.min(100,pct)}%"></div></div>`;
+    return `<div class="stat-bar-wrap"><div class="stat-bar ${cls}" style="width:${pct!=null?Math.min(100,pct):0}%"></div></div>`;
   }
+  function val(v){ return v!=null?v+'%':dash; }
   const cls='stat-tip'+(tipBelow?' tip-below':'')+(tipHorz?' '+tipHorz:'');
   return `<div class="${cls}" id="tip${i}">
     <div class="stat-tip-name">${s.emoji} ${s.name}</div>
-    <div class="stat-row">
-      <span class="stat-lbl">VPIP</span>${bar('vpip',vpip)}
-      <span class="stat-val">${hands<3?'—':vpip+'%'}</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-lbl">PFR</span>${bar('pfr',pfr)}
-      <span class="stat-val">${hands<3?'—':pfr+'%'}</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-lbl">3BET</span>${bar('b3',b3)}
-      <span class="stat-val">${s.threeBetOpp<3?'—':b3+'%'}</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-lbl">AGG%</span>${bar('af',af)}
-      <span class="stat-val">${hands<3?'—':af+'%'}</span>
-    </div>
-    <div class="stat-hands">${hands} hands</div>
+    <div class="stat-row"><span class="stat-lbl">VPIP</span>${bar('vpip',vpip)}<span class="stat-val">${val(vpip)}</span></div>
+    <div class="stat-row"><span class="stat-lbl">PFR</span>${bar('pfr',pfr)}<span class="stat-val">${val(pfr)}</span></div>
+    <div class="stat-row"><span class="stat-lbl">3BET</span>${bar('b3',b3)}<span class="stat-val">${val(b3)}</span></div>
+    <div class="stat-row"><span class="stat-lbl">AGG</span>${bar('af',af)}<span class="stat-val">${val(af)}</span></div>
+    <div class="stat-hands">${s.handsDealt} hands</div>
   </div>`;
 }
 
@@ -1159,7 +1221,7 @@ function refreshMyStats(){
     return `<div class="stat-bar-wrap"><div class="stat-bar ${cls}" style="width:${Math.min(100,pct)}%"></div></div>`;
   }
   el.innerHTML=`
-    <div class="stat-tip-name">${s.emoji} YOU — My Stats</div>
+    <div style="font-family:'Cinzel',serif;font-size:10px;color:#7df8ff;letter-spacing:.5px;text-align:center;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid rgba(125,216,248,.2);">${s.emoji} YOU — MY STATS</div>
     <div class="stat-row"><span class="stat-lbl">VPIP</span>${bar('vpip',vpip)}<span class="stat-val">${hands<3?'—':vpip+'%'}</span></div>
     <div class="stat-row"><span class="stat-lbl">PFR</span>${bar('pfr',pfr)}<span class="stat-val">${hands<3?'—':pfr+'%'}</span></div>
     <div class="stat-row"><span class="stat-lbl">3BET</span>${bar('b3',b3)}<span class="stat-val">${s.threeBetOpp<3?'—':b3+'%'}</span></div>
@@ -1241,7 +1303,8 @@ function updPlayer(){
   const ph=document.getElementById('phole');
   ph.innerHTML='';
   if(s.hole.length===2&&!s.folded){
-    s.hole.forEach(c=>{ph.innerHTML+=cardH(c,'md');});
+    // Use large card renderer for player's own hole cards
+    s.hole.forEach(c=>{ ph.innerHTML+=cardHLg(c); });
   }
   // Hand name label
   const hn=document.getElementById('phandname');
@@ -1408,12 +1471,13 @@ function newHand(){
   G.deck=shuf(mkDk());G.comm=[];G.pot=0;G.phase='pre';G.handOver=false;
   G.toCall=BB;G.minRaise=BB;
   G.seats.forEach(s=>{
-    s.bet=0;s.hole=[];s.folded=false;s.allin=false;s.active=false;
+    s.bet=0;s.hole=[];s.folded=false;s.allin=false;s.active=false;s.totalIn=0;
     // Per-hand stat flags
     s._vpipThisHand=false;s._pfrThisHand=false;
     s._threeBetOppThisHand=false;s._threeBetThisHand=false;
     s._cbetOppThisHand=false;s._cbetThisHand=false;
     s._facedCbetThisHand=false;s._postFlopActed=false;
+    s._pfActed_flop=false;s._pfActed_turn=false;s._pfActed_river=false;
     // Clear card cache so updPlayer always re-renders on new hand
     if(s.i===HUMAN){const ph=document.getElementById('phole');if(ph)ph.dataset.last='';}
   });
@@ -1440,7 +1504,7 @@ function newHand(){
   setLog(`New hand. Dealer: ${G.seats[G.dealer].name}`);
   setTimeout(()=>startBet((bbI+1)%SEATS),500);
 }
-function postBl(i,a){const s=G.seats[i];const v=Math.min(a,s.chips);s.chips-=v;s.bet=v;G.pot+=v;}
+function postBl(i,a){const s=G.seats[i];const v=Math.min(a,s.chips);s.chips-=v;s.bet=v;G.pot+=v;s.totalIn=(s.totalIn||0)+v;}
 
 // ════════════════════════════ BETTING ROUNDS ════════════════════════════
 const inHand=()=>G.seats.map((_,i)=>i).filter(i=>!G.seats[i].folded&&G.seats[i].hole.length);
@@ -1489,6 +1553,7 @@ function pAct(type,amt=0){
 // TAG=tight-aggressive  LAG=loose-aggressive  GTO=balanced
 // MANIAC=ultra-aggressive  NIT=tight-passive
 // Shuffle an array in place using crypto RNG
+const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
 function shuffleArr(a){
   const buf=new Uint32Array(a.length);
   crypto.getRandomValues(buf);
@@ -1496,495 +1561,387 @@ function shuffleArr(a){
   return a;
 }
 
-// 7 personalities for 8-handed (bots 1-7), one per seat, shuffled each session
+// ── 7 bot seats, styles shuffled fresh each session ──
 const _allStyles=['TAG','LAG','GTO','MANIAC','NIT','TAG','LAG'];
 const BOT_STYLES=shuffleArr([..._allStyles]);
 
-// 6-max profiles — higher vpip/pfr/cbet, tighter f3b (defend more), more bluff freq
+// ═══ STYLE PROFILES ═══════════════════════════════════════════════════════
+// vpip  = voluntary-put-in-pot rate
+// pfr   = pre-flop raise rate  (high = aggressive pre-flop)
+// b3    = 3-bet frequency when facing an open
+// cbet  = c-bet frequency on flop (as aggressor)
+// f3b   = fold-to-3bet rate (low = defends wide)
+// bluff = pure bluff frequency post-flop
+// agg   = post-flop raise/(raise+call) target (high = raises more, calls less)
 const STYLE_PROFILE={
-  TAG:   {vpip:.36,pfr:.28,b3:.10,cbet:.78,f3b:.45,bluff:.22},
-  LAG:   {vpip:.50,pfr:.40,b3:.18,cbet:.86,f3b:.28,bluff:.36},
-  GTO:   {vpip:.42,pfr:.34,b3:.14,cbet:.72,f3b:.36,bluff:.26},
-  MANIAC:{vpip:.65,pfr:.55,b3:.30,cbet:.94,f3b:.14,bluff:.50},
-  NIT:   {vpip:.24,pfr:.18,b3:.06,cbet:.62,f3b:.60,bluff:.10},
+  NIT:   {vpip:.24,pfr:.18,b3:.06,cbet:.62,f3b:.60,bluff:.10,agg:.35},
+  TAG:   {vpip:.36,pfr:.30,b3:.11,cbet:.80,f3b:.40,bluff:.22,agg:.52},
+  GTO:   {vpip:.42,pfr:.36,b3:.14,cbet:.73,f3b:.34,bluff:.27,agg:.60},
+  LAG:   {vpip:.50,pfr:.42,b3:.19,cbet:.87,f3b:.24,bluff:.37,agg:.64},
+  MANIAC:{vpip:.65,pfr:.56,b3:.31,cbet:.95,f3b:.12,bluff:.52,agg:.72},
 };
 
-
-// ════════════════════════════════════════════════════════════════
-// BOT AI — GTO/Exploitative with position awareness
-// ════════════════════════════════════════════════════════════════
-
-// ── Hand strength score 0–1 (pre + post flop) ──
-function botStr(idx){
-  const s=G.seats[idx];
-  if(!s.hole||s.hole.length<2)return 0.35;
-  const h=s.hole;
-  const v1=cv(h[0]),v2=cv(h[1]);
-  const suited=h[0].s===h[1].s;
-  const hi=Math.max(v1,v2),lo=Math.min(v1,v2);
-  const gap=hi-lo;
-
-  // ── Pre-flop equity estimate ──
-  if(G.comm.length===0){
-    let sc=0;
-    if(v1===v2){
-      // Pairs: 22=0.32 → AA=0.85
-      sc=0.32+((v1-2)/12)*0.53;
-    } else {
-      sc=(hi-2)/12*0.44+(lo-2)/12*0.18;
-      if(suited) sc+=0.07;
-      if(gap===1) sc+=0.09; // connectors
-      else if(gap===2) sc+=0.05;
-      else if(gap===3) sc+=0.02;
-      if(lo>=10) sc+=0.08;  // broadway
-      if(hi===14&&lo>=10) sc+=0.10; // AK/AQ/AJ/AT
-      if(hi===14&&lo>=8&&suited) sc+=0.06; // A8s+
-    }
-    return Math.max(0,Math.min(1,sc));
-  }
-
-  // ── Post-flop: hand evaluator + draw equity ──
-  const ev=evalH([...h,...G.comm]);
-  // rank 0=hi-card … 9=royal. Map generously so mid-strength hands play
-  const rankMap=[0.12,0.28,0.44,0.58,0.68,0.77,0.85,0.92,0.97,1.0];
-  let base=rankMap[Math.min(ev.rank,9)];
-
-  // Draw boosts on flop/turn
-  if(G.comm.length<5){
-    const all=[...h,...G.comm];
-    const sc={};all.forEach(c=>sc[c.s]=(sc[c.s]||0)+1);
-    if(Object.values(sc).some(v=>v===4)) base+=0.12; // flush draw
-    const vals=[...new Set(all.map(c=>cv(c)))].sort((a,b)=>a-b);
-    for(let i=0;i<=vals.length-4;i++){
-      if(vals[i+3]-vals[i]===3){base+=0.09;break;} // OESD
-    }
-    // Gutshot
-    for(let i=0;i<=vals.length-4;i++){
-      if(vals[i+3]-vals[i]===4){base+=0.04;break;}
-    }
-  }
-  const topK=(ev.k&&ev.k[0])||0;
-  base+=((topK-2)/12)*0.04;
-  return Math.max(0,Math.min(1,base));
-}
-
-// ── Position: 0=EP, 1=MP, 2=CO, 3=BTN, 4=SB, 5=BB ──
-// 8-handed position mapping → 6 range buckets [UTG,HJ,CO,BTN,SB,BB]
-// 8 seats: dealer=BTN, +1=SB, +2=BB, +3=UTG, +4=UTG+1, +5=MP, +6=HJ, +7=CO
-function botPosition(idx){
-  const dealer=G.dealer;
-  if(idx===dealer) return 3; // BTN
-  const sbI=(dealer+1)%SEATS, bbI=(dealer+2)%SEATS;
-  if(idx===sbI) return 4; // SB
-  if(idx===bbI) return 5; // BB
-  const dist=(idx-bbI+SEATS)%SEATS; // 1=UTG,2=UTG+1,3=MP,4=HJ,5=CO
-  if(dist<=2) return 0; // UTG / UTG+1 → tightest bucket
-  if(dist===3) return 1; // MP → HJ bucket
-  if(dist===4) return 1; // HJ
-  return 2; // CO
-}
-
-// ── 6-Max open ranges — everyone plays wider than full ring ──
-// Positions: [UTG, HJ, CO, BTN, SB, BB(no open)]
-// 6-max GTO opens: UTG~40%, HJ~50%, CO~60%, BTN~75%, SB~55%
-// Thresholds calibrated so pf>=thresh gives correct open% per position
-// [UTG, HJ, CO, BTN, SB, BB]
+// ═══ PRE-FLOP RANGE TABLES ════════════════════════════════════════════════
+// Index: [UTG, HJ, CO, BTN, SB, BB]
+// OPEN: minimum pfScore to open-raise first-in
 const OPEN_RANGE={
-  NIT:    [0.645,0.540,0.460,0.355,0.472,1.0],
-  TAG:    [0.503,0.445,0.382,0.295,0.408,1.0],
-  GTO:    [0.452,0.393,0.330,0.265,0.357,1.0],
-  LAG:    [0.408,0.348,0.295,0.238,0.320,1.0],
-  MANIAC: [0.340,0.295,0.248,0.178,0.273,1.0],
+  NIT:   [0.655,0.555,0.475,0.368,0.485,1.00],
+  TAG:   [0.520,0.462,0.400,0.318,0.425,1.00],
+  GTO:   [0.445,0.382,0.318,0.250,0.345,1.00],  // GTO opens looser than TAG esp BTN/CO
+  LAG:   [0.395,0.335,0.282,0.225,0.308,1.00],
+  MANIAC:[0.328,0.282,0.235,0.165,0.260,1.00],
 };
-// Call range: slightly wider than open (implied odds), same direction
-// [UTG, HJ, CO, BTN, SB, BB]
+// CALL: minimum pfScore to cold-call (when not 3-betting)
+// GTO is more raise-or-fold (higher threshold = fewer cold calls, more aggressive)
 const CALL_RANGE={
-  NIT:    [0.550,0.460,0.393,0.310,0.415,0.503],
-  TAG:    [0.460,0.408,0.360,0.270,0.375,0.393],
-  GTO:    [0.415,0.360,0.308,0.245,0.330,0.348],
-  LAG:    [0.375,0.320,0.270,0.215,0.295,0.295],
-  MANIAC: [0.310,0.270,0.225,0.165,0.250,0.238],
+  NIT:   [0.542,0.458,0.392,0.312,0.420,0.502],
+  TAG:   [0.462,0.412,0.365,0.278,0.382,0.398],
+  GTO:   [0.408,0.352,0.295,0.228,0.315,0.335],  // GTO calls less → bigger gap vs TAG
+  LAG:   [0.355,0.298,0.248,0.195,0.272,0.272],
+  MANIAC:[0.285,0.245,0.202,0.145,0.228,0.218],
 };
-// 3-bet value threshold: pf score above which we 3-bet for value
-// Derived from top N% of hands: NIT top 6%=0.74, TAG 10%=0.673, GTO 14%=0.617, LAG 18%=0.548, MANIAC 30%=0.445
-// Slightly looser at BTN/SB, tighter at UTG
+// TBET: minimum pfScore to 3-bet for value (lower = more 3-bets = more aggressive)
 const TBET_RANGE={
-  NIT:    [0.790,0.760,0.740,0.720,0.750,0.740],
-  TAG:    [0.720,0.700,0.680,0.650,0.670,0.660],
-  GTO:    [0.660,0.640,0.617,0.590,0.610,0.600],
-  LAG:    [0.590,0.565,0.548,0.510,0.540,0.530],
-  MANIAC: [0.490,0.465,0.445,0.410,0.440,0.430],
+  NIT:   [0.800,0.772,0.752,0.730,0.760,0.750],
+  TAG:   [0.705,0.682,0.660,0.632,0.652,0.642],
+  GTO:   [0.638,0.615,0.592,0.565,0.585,0.575],
+  LAG:   [0.572,0.547,0.528,0.492,0.520,0.510],
+  MANIAC:[0.475,0.450,0.430,0.395,0.425,0.415],
 };
 
-// ── Main bot decision ──
+// ═══ POSITION MAPPING ════════════════════════════════════════════════════
+// 8-seat → 6 range buckets: 0=UTG 1=HJ 2=CO 3=BTN 4=SB 5=BB
+function botPosition(idx){
+  const d=G.dealer;
+  if(idx===d)return 3;
+  const sb=(d+1)%SEATS,bb=(d+2)%SEATS;
+  if(idx===sb)return 4;
+  if(idx===bb)return 5;
+  const dist=(idx-bb+SEATS)%SEATS;
+  if(dist<=2)return 0;
+  if(dist===3)return 1;
+  if(dist===4)return 1;
+  return 2;
+}
+
+// ═══ MAIN BOT DECISION ═══════════════════════════════════════════════════
 function botTurn(idx){
   if(G.handOver)return;
   stopSeatTmr(idx);
   const s=G.seats[idx];
+  if(!s.hole||s.hole.length<2)return;
+
   const style=BOT_STYLES[(idx-1)%BOT_STYLES.length];
   const Pbase=STYLE_PROFILE[style];
-  // Use adapted runtime profile if available (after enough hands), else base
+  // Runtime-adapted profile (starts at base, drifts after 8+ hands of learning)
   const P={
     ...Pbase,
-    // Adaptive values drift from base toward exploitative adjustments
-    cbet: s._adaptCbet!==null ? s._adaptCbet : Pbase.cbet,
-    bluff:s._adaptBluff!==null? s._adaptBluff: Pbase.bluff,
-    // vpip/pfr are used for range table selection — keep near base
-    // (actual range is OPEN_RANGE keyed to style string, not P.vpip directly)
+    cbet : s._adaptCbet  !== null ? s._adaptCbet  : Pbase.cbet,
+    bluff: s._adaptBluff !== null ? s._adaptBluff : Pbase.bluff,
+    agg  : s._adaptAgg   !== null ? s._adaptAgg   : Pbase.agg,
   };
-  const ca=Math.max(0,G.toCall-s.bet);
-  const pot=Math.max(G.pot,1);
-  const street=G.phase;
-  const r=Math.random();
-  const pos=botPosition(idx); // 0=UTG,1=HJ,2=CO,3=BTN,4=SB,5=BB
-  const numActive=inHand().length;
-  const isIP=(pos===3); // in position (BTN is always IP post-flop vs everyone)
+
+  const ca    = Math.max(0, G.toCall - s.bet);
+  const pot   = Math.max(G.pot, 1);
+  const street= G.phase;
+  const r     = Math.random();
+  const pos   = botPosition(idx);
+  const nAct  = inHand().length;
+  const isIP  = (pos===3)||(pos===2&&nAct<=3); // BTN always IP; CO IP when few players
 
   // ── Hand facts ──
   const h=s.hole;
   const v1=cv(h[0]),v2=cv(h[1]);
   const suited=h[0].s===h[1].s;
   const hi=Math.max(v1,v2),lo=Math.min(v1,v2),gap=hi-lo;
-  const isPair=v1===v2, pairRank=isPair?v1:0;
+  const isPair=v1===v2,pairRank=isPair?v1:0;
   const isSC=suited&&gap<=2&&lo>=5;
   const isBroadway=lo>=10&&hi>=10;
 
-  // ── Pre-flop equity score (0–1) ──
-  // Calibrated so: AA=0.85, KK=0.80, QQ=0.76, JJ=0.72, TT=0.67, 99=0.62
-  //                AKs=1.0, AKo=0.88, AQs=0.82, AQo=0.72, KQs=0.68
-  //                98s=0.43, 76s=0.35, JTo=0.52, 72o=0.18
+  // ── pfScore: 0-1 hand equity estimate pre-flop ──
+  // AA=0.85 KK=0.80 QQ=0.76 JJ=0.72 TT=0.67 AKs=0.95 AKo=0.88 72o=0.10
   function pfScore(){
     let sc=0;
-    if(isPair){ sc=0.32+((pairRank-2)/12)*0.53; }
-    else{
+    if(isPair){
+      sc=0.32+((pairRank-2)/12)*0.53;
+    } else {
       sc=(hi-2)/12*0.44+(lo-2)/12*0.18;
-      if(suited)sc+=0.07; if(gap===1)sc+=0.09; else if(gap===2)sc+=0.05;
-      if(isBroadway)sc+=0.08; if(hi===14&&lo>=10)sc+=0.10;
+      if(suited)      sc+=0.07;
+      if(gap===1)     sc+=0.09;
+      else if(gap===2)sc+=0.05;
+      if(isBroadway)  sc+=0.08;
+      if(hi===14&&lo>=10)     sc+=0.10;
       if(hi===14&&lo>=8&&suited)sc+=0.06;
-      // Penalty for disconnected offsuit trash (gap>3 and not broadway)
       if(!suited&&gap>3&&!isBroadway) sc-=0.10;
-      if(!suited&&gap>5) sc-=0.06; // extra penalty for very disconnected
+      if(!suited&&gap>5)              sc-=0.06;
     }
     return Math.max(0,Math.min(1,sc));
   }
 
-  // ── Post-flop hand rank (0–9) directly, not squashed into 0-1 ──
-  // rank: 0=hc 1=pair 2=2pair 3=trips 4=str8 5=flush 6=fh 7=quads 8=sf 9=royal
+  // ── Post-flop hand rank 0-9 ──
   function postRank(){
-    if(G.comm.length===0) return -1;
-    const ev=evalH([...h,...G.comm]);
-    return ev.rank;
+    if(!G.comm.length)return -1;
+    return evalH([...h,...G.comm]).rank;
   }
 
-  // ── Draw outs ──
+  // ── Draw detection ──
   function drawOuts(){
     const all=[...h,...G.comm];
     const sc={};all.forEach(c=>sc[c.s]=(sc[c.s]||0)+1);
-    const hasFD=Object.values(sc).some(v=>v>=4); // flush draw (4 of suit)
+    const fd=Object.values(sc).some(v=>v>=4);
     const vals=[...new Set(all.map(c=>cv(c)))].sort((a,b)=>a-b);
-    let hasOESD=false,hasGS=false;
+    let oesd=false,gs=false;
     for(let i=0;i<=vals.length-4;i++){
-      const span=vals[i+3]-vals[i];
-      if(span===3)hasOESD=true;
-      if(span===4)hasGS=true;
+      const sp=vals[i+3]-vals[i];
+      if(sp===3)oesd=true;
+      if(sp===4)gs=true;
     }
-    return {fd:hasFD,oesd:hasOESD,gs:hasGS};
+    return {fd,oesd,gs};
   }
 
   // ── Sizing helpers ──
-  function R(frac,minBB=1){
-    return Math.min(s.chips, ca+Math.max(BB*minBB, Math.round(pot*frac)));
+  function R(frac){ return Math.min(s.chips, ca+Math.max(BB, Math.round(pot*frac))); }
+  function openSz(){ const m=pos===3?2.2:pos===4?2.5:pos<=1?2.8:2.5; return Math.min(s.chips,Math.round(BB*m)); }
+  function tBetSz(){ const m=isIP?3.0:4.0; return Math.min(s.chips,Math.max(G.toCall*m,BB*9)); }
+  function fBetSz(){ return Math.min(s.chips,Math.max(G.toCall*2.3,BB*20)); }
+
+  // ── Opponent reads (live HUD stats) ──
+  function oppRead(i){
+    const o=G.seats[i];
+    if(!o||o.handsDealt<5)return{loose:false,tight:false,passive:false,ftc:0.50,vpip:0.42};
+    const hd=o.handsDealt;
+    const ov=o.vpipCount/hd, op=o.pfrCount/hd;
+    const oftc=o.facedCbet>3?o.foldToCbet/o.facedCbet:0.50;
+    return{
+      loose:ov>0.52, tight:ov<0.26,
+      passive:(ov-op)>0.18,
+      ftc:oftc, foldsToCbet:oftc>0.68,
+      vpip:ov,
+    };
   }
-  function openSz(){
-    // 6-max: BTN 2.2x, SB 2.5x, CO/HJ 2.5x, UTG 3x
-    const mult=pos===3?2.2:pos===4?2.5:pos<=2?2.8:2.5;
-    return Math.min(s.chips, Math.round(BB*mult));
-  }
-  function threeBetSz(){
-    const mult=isIP?3.0:4.0; // IP smaller, OOP larger
-    return Math.min(s.chips, Math.max(G.toCall*mult, BB*9));
-  }
-  function fourBetSz(){
-    return Math.min(s.chips, Math.max(G.toCall*2.3, BB*20));
+  function tableRead(){
+    const opp=inHand().filter(i=>i!==idx);
+    if(!opp.length)return{loose:false,tight:false,avgVpip:0.42};
+    const avg=opp.reduce((s,i)=>{const o=G.seats[i];return s+(o.handsDealt>4?o.vpipCount/o.handsDealt:0.42);},0)/opp.length;
+    return{loose:avg>0.52,tight:avg<0.28,avgVpip:avg};
   }
 
-  let type='check', amt=0;
+  let type='check',amt=0;
   const pf=pfScore();
 
-  // ── Live opponent reads (exploit loose/tight/passive players) ──
-  // Returns adjustment multiplier: >1 = play tighter/less bluff, <1 = looser/more bluff
-  function oppRead(targetIdx){
-    const opp=G.seats[targetIdx];
-    if(!opp||opp.handsDealt<5) return {loose:false,tight:false,passive:false,aggro:false,vpip:0.40,ftc:0.50};
-    const hands=opp.handsDealt;
-    const liveVPIP=opp.vpipCount/hands;
-    const livePFR=opp.pfrCount/hands;
-    const liveB3=opp.threeBetOpp>3?opp.threeBetCount/opp.threeBetOpp:0.10;
-    const liveFtc=opp.facedCbet>3?opp.foldToCbet/opp.facedCbet:0.50; // fold-to-cbet
-    const liveAgg=opp.postFlopOpp>3?opp.postFlopBet/opp.postFlopOpp:0.30;
-    const isLoose=liveVPIP>0.52;
-    const isTight=liveVPIP<0.26;
-    const isPassive=(liveVPIP-livePFR)>0.18;
-    const isAggro=livePFR/Math.max(liveVPIP,0.01)>0.82;
-    const foldsToCbet=liveFtc>0.68; // folds >68% to flop bets = exploitable
-    return {loose:isLoose,tight:isTight,passive:isPassive,aggro:isAggro,
-            vpip:liveVPIP,b3:liveB3,ftc:liveFtc,agg:liveAgg,foldsToCbet};
-  }
-
-  // Reads on the preflop opener (whoever raised)
-  // In absence of specific info, use aggregate table read
-  function tableRead(){
-    const active=inHand().filter(i=>i!==idx);
-    if(active.length===0) return {loose:false,tight:false,passive:false,aggro:false};
-    // Average VPIP of active opponents
-    const avg=active.reduce((s,i)=>{
-      const o=G.seats[i];
-      return s+(o.handsDealt>4?o.vpipCount/o.handsDealt:0.40);
-    },0)/active.length;
-    return {loose:avg>0.52,tight:avg<0.28,passive:false,aggro:false,avgVpip:avg};
-  }
-
-  // ══════════════════════════════════════════════════════
-  // PRE-FLOP
-  // ══════════════════════════════════════════════════════
+  // ═══ PRE-FLOP ════════════════════════════════════════════════════════════
   if(street==='pre'){
-    const facingOpen = G.toCall > BB;
-    const facing3bet = G.toCall >= BB*3.5;
-    const facing4bet = G.toCall >= BB*10;
-    let openThresh = OPEN_RANGE[style][pos];
+    const facingOpen=G.toCall>BB;
+    const facing3bet=G.toCall>=BB*3.5;
+    const facing4bet=G.toCall>=BB*10;
 
-    // ── Exploitative pre-flop adjustment based on table reads ──
+    // Table-read exploitative open range adjustment
     const tr=tableRead();
-    // vs very loose table: tighten open range slightly (they call wide, more variance)
-    if(tr.loose) openThresh = Math.min(openThresh+0.03, 0.75);
-    // vs very tight table: loosen up and steal more
-    if(tr.tight) openThresh = Math.max(openThresh-0.04, 0.12);
+    let openThresh=OPEN_RANGE[style][pos];
+    if(tr.loose) openThresh=Math.min(openThresh+0.03,0.75); // tighten vs calling stations
+    if(tr.tight) openThresh=Math.max(openThresh-0.04,0.12); // steal more vs nits
 
     if(!facingOpen){
-      if(pf >= openThresh){
-        type='raise'; amt=openSz();
-      } else if(ca===0){
-        type='check'; // BB free look
-      } else {
-        type='fold';
-      }
+      // ── First in: raise or fold (GTO rarely just calls) ──
+      if(pf>=openThresh){    type='raise'; amt=openSz(); }
+      else if(ca===0){       type='check'; }   // BB gets free look
+      else {                 type='fold';  }
 
     } else if(!facing3bet){
-      // Facing one open — 3-bet/call/fold
-      const valueTbetMin = TBET_RANGE[style][pos];
-      let callMin = CALL_RANGE[style][pos];
-      const P_bluff3b = P.b3;
+      // ── Facing one open: 3-bet/call/fold ──
+      const vtm=TBET_RANGE[style][pos];
+      let callMin=CALL_RANGE[style][pos];
+      // Adjust call range based on opener tendency
+      const openers=inHand().filter(i=>i!==idx&&G.seats[i].bet>=G.toCall);
+      const oRead=openers.length?oppRead(openers[0]):{};
+      if(oRead.tight) callMin=Math.min(callMin+0.04,0.55);
+      if(oRead.loose) callMin=Math.max(callMin-0.04,0.15);
+      const bluff3b=oRead.passive?P.b3*2.2:P.b3*1.8; // squeeze limpers more
 
-      // Find the opener — the seat who put in the most preflop
-      const opener=inHand().filter(i=>i!==idx).reduce((best,i)=>
-        G.seats[i].bet>G.seats[best].bet?i:best, inHand().filter(i=>i!==idx)[0]);
-      const oRead=opener!==undefined?oppRead(opener):{};
-
-      // Exploitative: vs tight opener, fold more marginal calls; vs loose, call wider
-      if(oRead.tight) callMin=Math.min(callMin+0.04, 0.55);
-      if(oRead.loose) callMin=Math.max(callMin-0.04, 0.15);
-      // vs passive limper (rare preflop), squeeze more
-      const bluff3bAdj = oRead.passive ? P_bluff3b*2.2 : P_bluff3b*1.8;
-
-      if(pf >= valueTbetMin){
-        type='raise'; amt=threeBetSz();
-      } else if(isSC && pos>=2 && r < bluff3bAdj){
-        type='raise'; amt=threeBetSz();
-      } else if(isPair && pairRank<=6 && pos>=3 && r < P_bluff3b*1.2){
-        type='raise'; amt=threeBetSz();
-      } else if(pf >= callMin){
-        type='call';
-      } else if(ca===0){
-        type='check';
-      } else {
-        type='fold';
-      }
+      if(pf>=vtm){                                    type='raise'; amt=tBetSz(); } // value 3-bet
+      else if(isSC&&pos>=2&&r<bluff3b){               type='raise'; amt=tBetSz(); } // bluff 3-bet SC IP
+      else if(isPair&&pairRank<=6&&pos>=3&&r<P.b3*1.2){type='raise'; amt=tBetSz();} // 3-bet small pair bluff BTN
+      else if(pf>=callMin){                           type='call';  }
+      else if(ca===0){                                type='check'; }
+      else {                                          type='fold';  }
 
     } else if(!facing4bet){
-      // Facing 3-bet — defend width scales per style's f3b
-      // NIT folds 60% (defends top 40%), MANIAC folds 14% (defends 86%)
-      const defend3b=1-P.f3b;
-      // Base call threshold: derived so each style defends correct % of all hands
-      const callThresh=0.481-defend3b*0.278;
-      // Extra: LAG/MANIAC also defend speculative hands (SC, pairs) vs the tighter threshold
-      const specDefend=defend3b>0.65; // LAG and MANIAC defend speculative
+      // ── Facing 3-bet: 4-bet/call/fold ──
+      // Defence width = 1 - f3b; scaled so NIT defends 40%, MANIAC defends 88%
+      const def=1-P.f3b;
+      const callThresh=0.481-def*0.278;
+      const specDef=def>0.65; // LAG/MANIAC also defend speculative hands
 
-      if(pairRank>=14){ type='raise'; amt=fourBetSz(); } // AA: always 4-bet
-      else if(pairRank===13){ type=(r<0.85)?'raise':'call'; if(type==='raise')amt=fourBetSz(); } // KK
-      else if(pf>=0.82&&r<0.6){ type='raise'; amt=fourBetSz(); } // QQ/AKs mixed 4-bet
-      else if(pf>=0.72){ type='call'; } // JJ, AKo, AQs always call
-      else if(pf>=callThresh){ type='call'; } // style-width: NIT ~top 40%, GTO ~64%, MANIAC ~86%
-      // Loose styles also defend speculative holdings they have implied odds with
-      else if(specDefend&&isSC&&r<defend3b*0.90){ type='call'; } // SC: LAG/MANIAC call wide
-      else if(specDefend&&isPair&&pairRank>=5&&r<defend3b*0.70){ type='call'; } // small/mid pairs
-      else if(isSC&&pos===3&&r<P.b3*0.5){ type='raise'; amt=fourBetSz(); } // BTN 4-bet bluff SC (all styles)
-      // MANIAC calls very wide — any two cards below threshold still call at residual frequency
-      else if(r<(1-P.f3b)*0.55){ type='call'; } // MANIAC: ~86% defend total → residual calls
-      else { type='fold'; }
+      if(pairRank>=14){                     type='raise'; amt=fBetSz(); }   // AA always
+      else if(pairRank===13){               type=r<0.85?'raise':'call'; if(type==='raise')amt=fBetSz(); } // KK
+      else if(pf>=0.82&&r<0.60){            type='raise'; amt=fBetSz(); }   // QQ/AKs mixed
+      else if(pf>=0.72){                    type='call';  }                  // JJ/AKo/AQs
+      else if(pf>=callThresh){              type='call';  }                  // style-wide
+      else if(specDef&&isSC&&r<def*0.90){   type='call';  }                  // SC implied
+      else if(specDef&&isPair&&pairRank>=5&&r<def*0.70){ type='call'; }      // pairs implied
+      else if(isSC&&pos===3&&r<P.b3*0.5){  type='raise'; amt=fBetSz(); }    // BTN squeeze bluff
+      else if(r<def*0.55){                  type='call';  }                  // residual defend (MANIAC)
+      else {                                type='fold';  }
 
     } else {
-      // Facing 4-bet — only AA/KK continue
-      if(pairRank===14){ type='raise'; amt=s.chips; }
-      else if(pairRank===13&&r<0.5){ type='call'; }
-      else { type='fold'; }
+      // ── Facing 4-bet: shove or fold ──
+      if(pairRank===14){                    type='raise'; amt=s.chips; }
+      else if(pairRank===13&&r<0.50){       type='call';  }
+      else {                                type='fold';  }
     }
-  }
 
-  // ══════════════════════════════════════════════════════
-  // POST-FLOP
-  // ══════════════════════════════════════════════════════
-  else {
+  // ═══ POST-FLOP ═══════════════════════════════════════════════════════════
+  } else {
     const rank=postRank();
-    const draws=drawOuts();
+    const {fd,oesd,gs}=drawOuts();
 
-    // ── Board texture: wet boards reduce c-bet freq, dry boards increase ──
-    function boardTexture(){
-      if(G.comm.length===0) return {wet:false,dry:true,paired:false};
+    // ── Board texture ──
+    function boardTex(){
+      if(!G.comm.length)return{wet:false,dry:true,paired:false};
       const vals=G.comm.map(c=>cv(c));
-      const suits={};G.comm.forEach(c=>suits[c.s]=(suits[c.s]||0)+1);
-      const maxSuit=Math.max(...Object.values(suits));
+      const sc={};G.comm.forEach(c=>sc[c.s]=(sc[c.s]||0)+1);
+      const maxSuit=Math.max(...Object.values(sc));
       const sorted=[...vals].sort((a,b)=>a-b);
-      let connected=0;
-      for(let i=0;i<sorted.length-1;i++) if(sorted[i+1]-sorted[i]<=2) connected++;
-      const flushy=maxSuit>=2;
-      const straightish=connected>=1;
+      let conn=0;for(let i=0;i<sorted.length-1;i++)if(sorted[i+1]-sorted[i]<=2)conn++;
+      const flushy=maxSuit>=2, straight=conn>=1;
       const paired=new Set(vals).size<vals.length;
-      const wet=flushy&&straightish;
-      const dry=!flushy&&!straightish;
-      return {wet,dry,paired,flushy,straightish};
+      return{wet:flushy&&straight, dry:!flushy&&!straight, paired};
     }
-    const board=boardTexture();
+    const board=boardTex();
 
-    // C-bet gate: board texture + opponent read
-    const cbetGate = board.wet  ? P.cbet*0.58 :
-                     board.dry  ? P.cbet*1.05 :
-                                  P.cbet*0.80;
-
-    // Live reads on all active opponents for post-flop exploitation
-    const tr2=tableRead();
-    // Find if any opponent folds often to cbets (fire more vs them)
-    const oppsFoldToCbet=inHand().filter(i=>i!==idx).some(i=>{
-      const o=oppRead(i); return o.foldsToCbet;
-    });
-    const oppsLoose=tr2.loose;
-
-    // Bluff: more vs tight/fold-heavy, less vs loose callers
-    const bluffAdj = oppsLoose    ? P.bluff*0.62 :
-                     oppsFoldToCbet? P.bluff*1.35 :
-                     tr2.tight    ? P.bluff*1.25 :
-                                    P.bluff;
-    // Cbet: fire more vs players who fold to cbets
-    const cbetAdj  = oppsFoldToCbet? Math.min(cbetGate*1.20, P.cbet*1.05) : cbetGate;
-
-    // Value sizing: go thinner vs loose callers (they call with worse)
-    const valueAdj = oppsLoose ? 1.12 : 1.0;
-
+    // ── Equity estimate ──
     const rankEq=[0.18,0.45,0.64,0.74,0.88,0.91,0.95,0.98,0.99,1.0];
-    let eq=(rank>=0)?rankEq[Math.min(rank,9)]:0.18;
+    let eq=rank>=0?rankEq[Math.min(rank,9)]:0.18;
     if(G.comm.length<5){
-      if(draws.fd)  eq+=0.17;
-      if(draws.oesd) eq+=0.15;
-      else if(draws.gs) eq+=0.08;
+      if(fd)   eq+=0.17;
+      if(oesd) eq+=0.15;
+      else if(gs)eq+=0.08;
     }
     eq=Math.min(0.99,eq);
-    const mwDisc=Math.max(0,(numActive-2)*0.07);
+    const mwDisc=Math.max(0,(nAct-2)*0.07);
     const adjEq=Math.max(0.05,eq-mwDisc);
-    const cr=ca/Math.max(pot,1);
-    const callEq=cr/(1+cr);
+    const callEq=ca>0?ca/(ca+pot):0;
+
+    // ── Opponent exploitation ──
+    const tr2=tableRead();
+    const anyFoldsToCbet=inHand().filter(i=>i!==idx).some(i=>oppRead(i).foldsToCbet);
+
+    // C-bet freq: board-texture adjusted, then boost vs fold-happy opponents
+    const cbetBase=board.wet?P.cbet*0.58:board.dry?P.cbet*1.05:P.cbet*0.80;
+    const cbetAdj =anyFoldsToCbet?Math.min(cbetBase*1.20,P.cbet*1.05):cbetBase;
+
+    // Bluff freq: more vs tight/foldy tables, less vs loose callers
+    const bluffAdj=tr2.loose?P.bluff*0.62:anyFoldsToCbet?P.bluff*1.35:tr2.tight?P.bluff*1.25:P.bluff;
+
+    // Value sizing multiplier: go bigger vs loose callers (they pay off)
+    const valMul=tr2.loose?1.12:1.0;
+
+    // Post-flop aggression gate: MANIAC raises marginal; NIT calls or checks
+    // P.agg = target raise/(raise+call) ratio — higher = more raises, fewer calls
+    const aggGate=P.agg; // e.g. GTO=0.60, NIT=0.35, MANIAC=0.72
 
     if(street==='flop'){
       if(ca===0){
+        // ── No bet to face: bet for value, semi-bluff, or pure bluff ──
         if(rank>=2){
-          const sz=(rank>=4?0.80:rank===3?0.70:0.60)*valueAdj;
-          type='raise'; amt=R(Math.min(sz,1.0));
-        } else if(rank===1 && r<cbetAdj){
+          // Two pair+: always bet, size scales with strength
+          const sz=Math.min((rank>=4?0.80:rank===3?0.70:0.60)*valMul,1.0);
+          type='raise'; amt=R(sz);
+        } else if(rank===1&&r<cbetAdj){
+          // Top pair/overpair: c-bet at texture-adjusted frequency
           type='raise'; amt=R(isIP?0.55:0.65);
-        } else if((draws.fd||draws.oesd) && r<cbetAdj*0.85){
-          type='raise'; amt=R(0.55);
-        } else if(rank===0 && r<bluffAdj && !board.wet){
-          // Pure bluff: avoid on wet boards (likely to get raised)
-          type='raise'; amt=R(0.55);
+        } else if((fd||oesd)&&r<cbetAdj*0.85){
+          // Semi-bluff draws
+          type='raise'; amt=R(0.50);
+        } else if(rank===0&&r<bluffAdj&&!board.wet){
+          // Pure bluff: only on dry boards (wet boards invite raises)
+          type='raise'; amt=R(0.50);
         } else {
           type='check';
         }
       } else {
-        if(rank>=3){ type='raise'; amt=R(0.85); }
-        else if(rank===2&&r<0.55){ type='raise'; amt=R(0.75); }
-        else if(adjEq>=callEq+0.06){ type='call'; }
-        else if((draws.fd||draws.oesd)&&adjEq>=callEq){ type='call'; }
-        else if(rank===0&&adjEq<callEq&&r<bluffAdj*0.6){ type='raise'; amt=R(0.80); }
-        else if(adjEq<callEq*0.8){ type='fold'; }
-        else { type='call'; }
+        // ── Facing a flop bet ──
+        if(rank>=3){
+          type='raise'; amt=R(0.85); // trips+: always raise
+        } else if(rank===2&&r<(0.40+aggGate*0.30)){
+          type='raise'; amt=R(0.75); // two pair: raise scaled by aggression profile
+        } else if(adjEq>=callEq+0.06){
+          type='call';
+        } else if((fd||oesd)&&adjEq>=callEq){
+          type='call'; // draw with odds
+        } else if(rank===0&&r<bluffAdj*0.55){
+          type='raise'; amt=R(0.80); // bluff-raise air
+        } else if(adjEq<callEq*0.80){
+          type='fold';
+        } else {
+          type='call';
+        }
       }
-    }
 
-    else if(street==='turn'){
+    } else if(street==='turn'){
+      const turnGate=cbetAdj*0.78; // tighter on turn
       if(ca===0){
-        // Turn: more selective — only continue with good equity
-        const turnGate=cbetGate*0.80; // ~20% tighter on turn
         if(rank>=3){
           type='raise'; amt=R(rank>=5?0.90:0.75);
-        } else if(rank===2 && r<turnGate){
+        } else if(rank===2&&r<turnGate){
           type='raise'; amt=R(0.65);
-        } else if(rank===1 && isIP && r<turnGate*0.60){
-          type='raise'; amt=R(0.65);
-        } else if((draws.fd||draws.oesd) && r<turnGate*0.70){
-          type='raise'; amt=R(0.70);
-        } else if(rank===0 && r<bluffAdj*0.45 && isIP){
-          type='raise'; amt=R(0.70);
+        } else if(rank===1&&isIP&&r<turnGate*0.55){
+          type='raise'; amt=R(0.65); // barrel IP with top pair
+        } else if((fd||oesd)&&r<turnGate*0.70){
+          type='raise'; amt=R(0.70); // continue semi-bluff
+        } else if(rank===0&&isIP&&r<bluffAdj*0.42){
+          type='raise'; amt=R(0.70); // turn bluff IP only
         } else {
           type='check';
         }
       } else {
         if(rank>=4){ type='raise'; amt=R(0.90); }
-        else if(rank===3&&r<0.6){ type='raise'; amt=R(0.80); }
+        else if(rank===3&&r<(0.45+aggGate*0.25)){ type='raise'; amt=R(0.80); }
         else if(adjEq>=callEq+0.05){ type='call'; }
-        else if((draws.fd||draws.oesd)&&adjEq>=callEq){ type='call'; }
-        else if(rank<=1&&r<bluffAdj*0.35){ type='raise'; amt=R(0.85); }
+        else if((fd||oesd)&&adjEq>=callEq){ type='call'; }
+        else if(rank<=1&&r<bluffAdj*0.32){ type='raise'; amt=R(0.85); }
         else if(adjEq<callEq*0.75){ type='fold'; }
-        else { type=(adjEq>=callEq)?'call':'fold'; }
+        else { type=adjEq>=callEq?'call':'fold'; }
       }
-    }
 
-    else if(street==='river'){
+    } else if(street==='river'){
       if(ca===0){
         if(rank>=4){
+          // Str8+: large value bet; overbet with nuts
           type='raise'; amt=R(rank>=6?1.20:0.90);
-        } else if(rank>=2 && r<P.cbet*0.65*valueAdj){
+        } else if(rank>=2&&r<P.cbet*0.65*valMul){
           type='raise'; amt=R(0.70);
-        } else if(rank===1 && isIP && r<P.cbet*0.30){
-          type='raise'; amt=R(0.50);
-        } else if(rank===0 && r<bluffAdj*0.40 && isIP){
-          // River bluff: only in position, not vs loose callers
-          type='raise'; amt=R(0.85);
+        } else if(rank===1&&isIP&&r<P.cbet*0.28){
+          type='raise'; amt=R(0.50); // thin value IP
+        } else if(rank===0&&isIP&&r<bluffAdj*0.38){
+          type='raise'; amt=R(0.85); // missed draw bluff, IP only
         } else {
           type='check';
         }
       } else {
         if(rank>=5){ type='raise'; amt=R(1.10); }
-        else if(rank>=3&&r<0.50){ type='raise'; amt=R(0.90); }
+        else if(rank>=3&&r<(0.35+aggGate*0.25)){ type='raise'; amt=R(0.90); }
         else if(rank>=2&&adjEq>=callEq+0.08){ type='call'; }
         else if(rank===1&&adjEq>=callEq+0.04){ type='call'; }
-        else if(rank===0&&r<bluffAdj*0.28){ type='raise'; amt=R(1.00); }
+        else if(rank===0&&r<bluffAdj*0.26){ type='raise'; amt=R(1.00); }
         else if(adjEq<callEq){ type='fold'; }
         else { type='call'; }
       }
     }
   }
 
-  // ── Safety ──
+  // ── Safety net ──
   if(type==='fold'&&ca===0)          type='check';
-  if(type==='raise'&&amt<=ca)        type=(ca===0?'check':'call');
-  if(type==='raise'&&s.chips<=0)     type=(ca===0?'check':'call');
+  if(type==='raise'&&amt<=ca)        type=ca===0?'check':'call';
+  if(type==='raise'&&s.chips<=0)     type=ca===0?'check':'call';
   if(type==='call'&&ca>=s.chips)     { type='raise'; amt=s.chips; }
   if(type==='raise'&&amt>s.chips)    amt=s.chips;
   if(type==='raise'&&amt<ca+BB&&ca>0) type='call';
 
   applyAct(idx,type,amt);
   G.bPos++;
-  setTimeout(nextTurn,260+Math.random()*360);
+  setTimeout(nextTurn,280+Math.random()*400);
 }
-
 
 
 function applyAct(idx,type,rAmt=0){
@@ -2003,9 +1960,10 @@ function applyAct(idx,type,rAmt=0){
       if(type==='raise'||type==='allin'){s._threeBetThisHand=true; s.threeBetCount++;}
     }
   }
-  // Post-flop aggression tracking (bet/raise on any street)
-  if(G.phase!=='pre'&&!s._postFlopActed){
-    s._postFlopActed=true; s.postFlopOpp++;
+  // Post-flop aggression tracking — once per street (flop/turn/river)
+  var _pfKey='_pfActed_'+G.phase;
+  if(G.phase!=='pre'&&!s[_pfKey]){
+    s[_pfKey]=true; s.postFlopOpp++;
     if(type==='raise'||type==='allin') s.postFlopBet++;
   }
   // C-bet and fold-to-cbet
@@ -2021,49 +1979,69 @@ function applyAct(idx,type,rAmt=0){
     }
   }
 
-  // ════ Self-adaptation: every 8 hands recalibrate runtime tendencies ════
-  // Bots observe their own results and tilt/adjust their effective style profile
-  if(s.handsDealt>0&&s.handsDealt%8===0&&s.handsDealt>0){
+  // ════ Self-adaptation: recalibrate every 8 hands ════════════════════════
+  // Each bot tracks its own tendencies vs table patterns and counter-adjusts.
+  // This implements exploitative GTO: start balanced, shift when patterns emerge.
+  if(s.handsDealt>0 && s.handsDealt%8===0){
     const hd=s.handsDealt;
-    const myVpip=s.vpipCount/hd;
-    const myPfr=s.pfrCount/hd;
-    const myCbet=s.cbetOpp>2?s.cbetCount/s.cbetOpp:P.cbet;
-    const myFtc=s.facedCbet>2?s.foldToCbet/s.facedCbet:P.f3b;
-    const myAgg=s.postFlopOpp>3?s.postFlopBet/s.postFlopOpp:P.cbet*0.5;
-    // Opponent aggregate reads for counter-adjustment
-    const oppVpips=inHand().filter(i=>i!==idx).map(i=>{
-      const o=G.seats[i]; return o.handsDealt>4?o.vpipCount/o.handsDealt:0.42;
-    });
-    const tableAvg=oppVpips.length?oppVpips.reduce((a,b)=>a+b,0)/oppVpips.length:0.42;
-    // Adaptive drift rules (GTO-exploitative adjustments):
-    // Rule 1: vs very loose table → tighten own VPIP toward base style
-    // Rule 2: vs very tight table → loosen bluffs
-    // Rule 3: if own fold-to-cbet very high → defend more (don't be exploited)
-    // Rule 4: if own cbet getting raised often → slow down cbet freq
-    const looseTable=tableAvg>0.55;
-    const tightTable=tableAvg<0.28;
-    const overFolding=myFtc>0.75; // folding to cbet >75% is too exploitable
-    const underFolding=myFtc<0.20; // rarely folding means opponents fire less
-    // Store adapted values (bounded within personality range)
-    s._adaptVpip = Math.max(P.vpip*0.80, Math.min(P.vpip*1.20,
-      looseTable ? P.vpip*0.93 : tightTable ? P.vpip*1.08 : myVpip*0.85+P.vpip*0.15));
-    s._adaptBluff = Math.max(P.bluff*0.50, Math.min(P.bluff*1.60,
-      tightTable ? P.bluff*1.25 : looseTable ? P.bluff*0.75 : P.bluff));
-    s._adaptCbet = Math.max(P.cbet*0.55, Math.min(P.cbet*1.10,
-      overFolding ? P.cbet*1.05 : underFolding ? P.cbet*0.85 : myCbet*0.5+P.cbet*0.5));
+    const Pb=STYLE_PROFILE[BOT_STYLES[(idx-1)%BOT_STYLES.length]]; // always use base
+    // Own observed rates
+    const myCbet  = s.cbetOpp>3    ? s.cbetCount/s.cbetOpp     : Pb.cbet;
+    const myFtc   = s.facedCbet>3  ? s.foldToCbet/s.facedCbet  : Pb.f3b;
+    const myAgg   = s.postFlopOpp>3? s.postFlopBet/s.postFlopOpp: Pb.agg;
+    // Table aggregate VPIP (how loose/tight the table is playing)
+    const allSeats=G.seats.filter(o=>o.i!==idx&&o.handsDealt>4);
+    const tableVpip=allSeats.length
+      ? allSeats.reduce((a,o)=>a+o.vpipCount/o.handsDealt,0)/allSeats.length
+      : 0.42;
+    const isLoose=tableVpip>0.54;  // table plays too many hands → tighten + value bet more
+    const isTight=tableVpip<0.28;  // table plays too few hands  → bluff more, steal
+    const overFolding=myFtc>0.72;  // bot folding too much to cbets → exploitable
+    const underFiring=myCbet<Pb.cbet*0.70; // bot not firing enough → let it ramp up
+
+    // ── Adaptation rules (bounded to ±30% of base style) ──
+    // Rule 1: bluff — more vs tight folds, less vs loose callers
+    s._adaptBluff = clamp(
+      isTight  ? Pb.bluff*1.30 :
+      isLoose  ? Pb.bluff*0.68 :
+               Pb.bluff,
+      Pb.bluff*0.50, Pb.bluff*1.60
+    );
+    // Rule 2: c-bet — fire more when opponents over-fold to cbets
+    const ftcAvg=allSeats.length
+      ? allSeats.reduce((a,o)=>a+(o.facedCbet>2?o.foldToCbet/o.facedCbet:0.50),0)/allSeats.length
+      : 0.50;
+    s._adaptCbet = clamp(
+      ftcAvg>0.65 ? Pb.cbet*1.15 :  // table folds too much → cbet more
+      ftcAvg<0.35 ? Pb.cbet*0.80 :  // table calls everything → cbet less
+      overFolding ? Pb.cbet*1.08 :  // self over-folding → be more aggressive to compensate
+      underFiring ? Pb.cbet*1.05 :
+      myCbet*0.40+Pb.cbet*0.60,     // gradual regression to base
+      Pb.cbet*0.55, Pb.cbet*1.15
+    );
+    // Rule 3: post-flop aggression — ramp up vs passive tables, dial back vs maniacs
+    const aggAvg=allSeats.length
+      ? allSeats.reduce((a,o)=>a+(o.postFlopOpp>3?o.postFlopBet/o.postFlopOpp:0.35),0)/allSeats.length
+      : 0.35;
+    s._adaptAgg = clamp(
+      aggAvg<0.28 ? Pb.agg*1.20 :  // table is passive → raise them more
+      aggAvg>0.60 ? Pb.agg*0.85 :  // table is maniacs → tighten raise range
+      myAgg*0.30+Pb.agg*0.70,
+      Pb.agg*0.65, Pb.agg*1.35
+    );
   }
 
   if(type==='fold'){s.folded=true;msg=`${s.name} folds.`;SND.fold();}
   else if(type==='check'){msg=`${s.name} checks.`;SND.check();}
   else if(type==='call'){
-    const a=Math.min(ca,s.chips);s.chips-=a;s.bet+=a;G.pot+=a;
+    const a=Math.min(ca,s.chips);s.chips-=a;s.bet+=a;G.pot+=a;s.totalIn=(s.totalIn||0)+a;
     if(s.chips===0)s.allin=true;msg=`${s.name} calls ${a}.`;SND.chip();
   } else if(type==='raise'){
     const wanted = rAmt > 0 ? rAmt : (ca + G.minRaise);
     const tot = Math.min(wanted, s.chips);
     const newBet = s.bet + tot;
     const raiseBy = newBet - G.toCall;
-    s.chips -= tot; s.bet = newBet; G.pot += tot;
+    s.chips -= tot; s.bet = newBet; G.pot += tot; s.totalIn=(s.totalIn||0)+tot;
     G.toCall = newBet;
     G.minRaise = Math.max(BB, raiseBy);
     if(s.chips===0) s.allin=true;
@@ -2073,7 +2051,7 @@ function applyAct(idx,type,rAmt=0){
     if(re.length)G.bQ=[...G.bQ.slice(0,G.bPos+1),...re];
     msg=`${s.name} raises to ${s.bet}.`;SND.chip();
   } else if(type==='allin'){
-    const a=s.chips;s.chips=0;s.bet+=a;G.pot+=a;s.allin=true;
+    const a=s.chips;s.chips=0;s.bet+=a;G.pot+=a;s.allin=true;s.totalIn=(s.totalIn||0)+a;
     if(s.bet>G.toCall){G.toCall=s.bet;G.minRaise=Math.max(BB,a);}
     msg=`💥 ${s.name} ALL IN (${a})!`;SND.allin();
   }
@@ -2107,9 +2085,35 @@ function showdown(){
   }
   const res=ih.map(i=>{const s=G.seats[i];return{i,seat:s,hole:s.hole,folded:s.folded,ev:evalH([...s.hole,...G.comm])};})
     .sort((a,b)=>b.ev.rank-a.ev.rank||cmpK(b.ev.k,a.ev.k));
-  const top=res[0].ev;
-  const wins=res.filter(r=>r.ev.rank===top.rank&&cmpK(r.ev.k,top.k)===0);
-  const split=Math.floor(G.pot/wins.length);wins.forEach(w=>w.seat.chips+=split);
+  // ── Side-pot aware distribution ──────────────────────────────
+  function awardSlice(contestants,amt){
+    if(!contestants.length||amt<=0)return[];
+    const best=contestants[0].ev;
+    const ws=contestants.filter(r=>r.ev.rank===best.rank&&cmpK(r.ev.k,best.k)===0);
+    const share=Math.floor(amt/ws.length);
+    ws.forEach(w=>w.seat.chips+=share);
+    return ws;
+  }
+  const allinSeats=G.seats.filter(s=>s.allin&&s.totalIn>0).sort((a,b)=>a.totalIn-b.totalIn);
+  let wins;
+  if(allinSeats.length===0){
+    wins=awardSlice(res,G.pot);
+  } else {
+    let leftover=G.pot,prevCap=0;
+    const caps=[...new Set(allinSeats.map(s=>s.totalIn))];
+    caps.forEach(cap=>{
+      const perPlayer=cap-prevCap;
+      const elig=res.filter(r=>!r.seat.totalIn||r.seat.totalIn>=cap);
+      const potSlice=Math.min(perPlayer*Math.max(1,G.seats.filter(s=>s.chips>0||s.allin).length),leftover);
+      if(potSlice>0&&elig.length)awardSlice(elig,potSlice);
+      leftover-=Math.max(0,potSlice);
+      prevCap=cap;
+    });
+    if(leftover>0)awardSlice(res,leftover);
+    const top2=res[0].ev;
+    wins=res.filter(r=>r.ev.rank===top2.rank&&cmpK(r.ev.k,top2.k)===0);
+  }
+  if(!wins||!wins.length){const top3=res[0].ev;wins=res.filter(r=>r.ev.rank===top3.rank&&cmpK(r.ev.k,top3.k)===0);}
   SND.win();
   // Reveal cards — patch existing seat elements, don't rebuild
   res.forEach(r=>{
