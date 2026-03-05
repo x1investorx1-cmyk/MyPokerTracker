@@ -1585,20 +1585,21 @@ const STYLE_PROFILE={
 // Index: [UTG, HJ, CO, BTN, SB, BB]
 // OPEN: minimum pfScore to open-raise first-in
 const OPEN_RANGE={
-  NIT:   [0.655,0.555,0.475,0.368,0.485,1.00],
-  TAG:   [0.520,0.462,0.400,0.318,0.425,1.00],
-  GTO:   [0.445,0.382,0.318,0.250,0.345,1.00],  // GTO opens looser than TAG esp BTN/CO
-  LAG:   [0.395,0.335,0.282,0.225,0.308,1.00],
-  MANIAC:[0.328,0.282,0.235,0.165,0.260,1.00],
+  NIT:   [0.658,0.562,0.482,0.390,0.492,1.00],  // NIT:  UTG12% HJ17% CO24% BTN40% SB22%
+  TAG:   [0.523,0.467,0.404,0.335,0.432,1.00],  // TAG:  UTG20% HJ27% CO36% BTN50% SB32%
+  GTO:   [0.450,0.388,0.322,0.272,0.350,1.00],  // GTO:  UTG29% HJ38% CO51% BTN64% SB45%
+  LAG:   [0.400,0.340,0.288,0.222,0.315,1.00],  // LAG:  UTG36% HJ46% CO60% BTN74% SB53%
+  MANIAC:[0.328,0.283,0.236,0.165,0.260,1.00],  // MNAC: UTG50% HJ61% CO73% BTN87% SB67%
 };
-// CALL: minimum pfScore to cold-call (when not 3-betting)
-// GTO is more raise-or-fold (higher threshold = fewer cold calls, more aggressive)
+// CALL_RANGE: minimum pfScore to cold-call facing one open raise
+// Higher threshold = tighter (fewer hands qualify)
+// Targets: NIT 6-22%, TAG 9-28%, GTO 12-35%, LAG 16-45%, MANIAC 22-58%
 const CALL_RANGE={
-  NIT:   [0.542,0.458,0.392,0.312,0.420,0.502],
-  TAG:   [0.462,0.412,0.365,0.278,0.382,0.398],
-  GTO:   [0.408,0.352,0.295,0.228,0.315,0.335],  // GTO calls less → bigger gap vs TAG
-  LAG:   [0.355,0.298,0.248,0.195,0.272,0.272],
-  MANIAC:[0.285,0.245,0.202,0.145,0.228,0.218],
+  NIT:   [0.740,0.717,0.672,0.585,0.673,0.503],
+  TAG:   [0.687,0.660,0.585,0.503,0.617,0.453],
+  GTO:   [0.660,0.603,0.525,0.453,0.548,0.408],
+  LAG:   [0.585,0.525,0.473,0.408,0.488,0.355],
+  MANIAC:[0.503,0.453,0.408,0.330,0.433,0.295],
 };
 // TBET: minimum pfScore to 3-bet for value (lower = more 3-bets = more aggressive)
 const TBET_RANGE={
@@ -1701,7 +1702,7 @@ function botTurn(idx){
 
   // ── Sizing helpers ──
   function R(frac){ return Math.min(s.chips, ca+Math.max(BB, Math.round(pot*frac))); }
-  function openSz(){ const m=pos===3?2.2:pos===4?2.5:pos<=1?2.8:2.5; return Math.min(s.chips,Math.round(BB*m)); }
+  function openSz(){ const m=pos===3?2.5:pos===4?3.0:pos===2?2.75:pos===1?2.75:3.0; return Math.min(s.chips,Math.round(BB*m)); }
   function tBetSz(){ const m=isIP?3.0:4.0; return Math.min(s.chips,Math.max(G.toCall*m,BB*9)); }
   function fBetSz(){ return Math.min(s.chips,Math.max(G.toCall*2.3,BB*20)); }
 
