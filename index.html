@@ -199,6 +199,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#080f09;font-family:
 #ovb b{color:var(--tx);}
 #ovn{font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:2px;padding:9px 26px;background:var(--gd);border:1px solid var(--gold);color:var(--gl);border-radius:5px;cursor:pointer;}
 #ovn:hover{background:var(--gold);}
+#bstart{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:200;align-items:center;justify-content:center;}#bstart.on{display:flex;}#bstartc{background:linear-gradient(160deg,#0a1a0e,#0d2318);border:1px solid rgba(201,168,76,.35);border-radius:14px;padding:28px 32px;min-width:280px;max-width:340px;display:flex;flex-direction:column;gap:12px;align-items:center;}
 #bm{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:200;align-items:center;justify-content:center;}
 #bm.on{display:flex;}
 #bmc{background:linear-gradient(135deg,#09160b,#1a4a2a);border:2px solid var(--gd);border-radius:10px;padding:26px 34px;min-width:270px;text-align:center;}
@@ -345,6 +346,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:#080f09;font-family:
   </div>
 </div>
 </div>
+<div id="bstart">
+  <div id="bstartc">
+    <div class="bmtitle">🃏 Ready to Play?</div>
+    <button class="bmo" onclick="playNow()">▶ Play Now vs Bots</button>
+    <button class="bmo" onclick="playWithFriends()">🔗 Invite Friends</button>
+    <button class="bmo cx" onclick="document.getElementById('bstart').classList.remove('on')">Cancel</button>
+  </div>
+</div>
 <div id="ov">
   <div id="ovc">
     <div id="ovt"></div>
@@ -354,11 +363,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#080f09;font-family:
 </div>
 <div id="bm">
   <div id="bmc">
-    <div id="bmtitle">💰 BUY IN</div>
-    <button class="bmo" onclick="doBuyIn(4000)">4,000 — 20 BB (Short)</button>
-    <button class="bmo" onclick="doBuyIn(10000)">10,000 — 50 BB (Regular)</button>
-    <button class="bmo" onclick="doBuyIn(20000)">20,000 — 100 BB (Deep)</button>
-    <button class="bmo" onclick="doBuyIn(50000)">50,000 — 250 BB (High Roller)</button>
+    <div id="bmtitle">💰 BUY IN — $1/$2 Blinds</div>
+    <button class="bmo" onclick="doBuyIn(500)">$5 — 2.5 BB (Micro)</button>
+    <button class="bmo" onclick="doBuyIn(1000)">$10 — 5 BB (Short)</button>
+    <button class="bmo" onclick="doBuyIn(10000)">$100 — 50 BB (Standard)</button>
+    <button class="bmo" onclick="doBuyIn(20000)">$200 — 100 BB (Deep)</button>
     <button class="bmo cx" onclick="closeBuyIn()">Cancel</button>
   </div>
 </div>
@@ -483,12 +492,26 @@ let G={seats:[],deck:[],comm:[],pot:0,phase:'idle',dealer:1,toCall:0,minRaise:BB
 
 function initSeats(){
   G.seats=[];
-  for(let i=0;i<SEATS;i++)
-    G.seats.push({i,name:i===HUMAN?'You':BNAMES[i-1],emoji:i===HUMAN?'🫵':BEMOJIS[i-1],chips:i===HUMAN?0:10000,bet:0,hole:[],folded:false,allin:false,active:false,isH:i===HUMAN,handsDealt:0,vpipCount:0,pfrCount:0,threeBetCount:0,threeBetOpp:0,cbetCount:0,cbetOpp:0,foldToCbet:0,facedCbet:0,postFlopBet:0,postFlopOpp:0,showdownWin:0,showdownTotal:0,totalIn:0,_adaptVpip:null,_adaptBluff:null,_adaptCbet:null,_adaptAgg:null,totalWon:0,handsWon:0,_bias:(Math.random()-0.5)*0.10}); // _bias: per-bot ±5% decision noise — same-style bots play differently
+  for(let i=0;i<SEATS;i++){
+    const _pcfg = i===HUMAN ? null : BOT_CONFIGS[i-1];
+    G.seats.push({
+      i, chips:i===HUMAN?0:10000, bet:0, hole:[], folded:false, allin:false, active:false,
+      isH:i===HUMAN,
+      name : i===HUMAN?'You':BNAMES[i-1],
+      emoji: i===HUMAN?'🫵':(_pcfg?_pcfg.img:BEMOJIS[i-1]),
+      persona: _pcfg ? _pcfg.id : null,
+      handsDealt:0, vpipCount:0, pfrCount:0, threeBetCount:0, threeBetOpp:0,
+      cbetCount:0, cbetOpp:0, foldToCbet:0, facedCbet:0,
+      postFlopBet:0, postFlopOpp:0, showdownWin:0, showdownTotal:0, totalIn:0,
+      _adaptBluff:null, _adaptCbet:null, _adaptAgg:null,
+      totalWon:0, handsWon:0,
+      _bias:0, _pfrThisHand:false,
+    });
+  }
 }
 
 // ════════════════════════════ RENDER ════════════════════════════
-const fmt=n=>n.toLocaleString();
+const fmt=n=>{const d=n/100;return d===Math.floor(d)?'$'+d.toLocaleString():'$'+(d).toFixed(2);};
 function cardH(c,sz='md'){
   if(!c)return`<div class="card ${sz} ph"></div>`;
   const red=c.s==='♥'||c.s==='♦';
@@ -544,7 +567,7 @@ function buildStatTip(i,tipBelow=false,tipHorz=''){
   function val(v){return v!=null?v+'%':'—';}
   const cls='stat-tip'+(tipBelow?' tip-below':'')+(tipHorz?' '+tipHorz:'');
   return`<div class="${cls}" id="tip${i}">
-    <div class="stat-tip-name">${s.emoji} ${s.name}</div>
+    <div class="stat-tip-name">${s.emoji} ${s.name}${s.persona?` <span style="font-size:.40rem;opacity:.6">[${s.persona}]</span>`:''}</div>
     <div class="stat-row"><span class="stat-lbl">VPIP</span>${bar('vpip',vpip)}<span class="stat-val">${val(vpip)}</span></div>
     <div class="stat-row"><span class="stat-lbl">PFR</span>${bar('pfr',pfr)}<span class="stat-val">${val(pfr)}</span></div>
     <div class="stat-row"><span class="stat-lbl">3BET</span>${bar('b3',b3)}<span class="stat-val">${val(b3)}</span></div>
@@ -637,6 +660,7 @@ function enAct(on){
   const s=G.seats[HUMAN];
   const canAct=on&&s&&s.hole.length===2&&!s.folded&&!s.allin&&s.chips>0;
   document.getElementById('abar').classList.toggle('off',!canAct);
+  document.getElementById('abar').style.zIndex = canAct ? '500' : '30';
   if(!canAct){closeRaise();return;}
   const ca=Math.max(0,G.toCall-s.bet);const ck=ca===0;
   document.getElementById('bcheck').disabled=!ck;document.getElementById('bcheck').style.display=ck?'':'none';
@@ -731,7 +755,7 @@ function newHand(){
     else if(hc){hc.remove();}
   });
   renderSeats();updPot();enAct(false);closeRaise();SND.deal();
-  chat('sys',`🃏 New hand — Dealer: ${G.seats[G.dealer].name} | Blinds: ${SB}/${BB}`);
+  chat('sys',`🃏 New hand — Dealer: ${G.seats[G.dealer].name} | Blinds: $1/$2`);
   setLog(`New hand. Dealer: ${G.seats[G.dealer].name}`);
   setTimeout(()=>startBet((bbI+1)%SEATS),500);
 }
@@ -754,13 +778,14 @@ function nextTurn(){
   if(G.bPos>=G.bQ.length){endBet();return;}
   const idx=G.bQ[G.bPos];const s=G.seats[idx];
   G.seats.forEach(x=>x.active=false);s.active=true;renderSeats();
-  if(s.isH){enAct(true);startTmr(()=>pAct('check'));setLog(`Your turn — to call: ${Math.max(0,G.toCall-s.bet)}`);}
+  if(s.isH){enAct(true);const _autoAct=()=>{const _ca=Math.max(0,G.toCall-G.seats[HUMAN].bet);pAct(_ca>0?'fold':'check');};startTmr(_autoAct);setLog(`Your turn — to call: ${Math.max(0,G.toCall-s.bet)}`);}
   else{
     enAct(false);startSeatTmr(idx);setLog(`${s.name} is thinking…`);
     // Think time varies by personality: NIT deliberate, MANIAC snap-acts
-    const _thinkStyle=BOT_STYLES[idx-1];
-    const _thinkBase={NIT:900,TAG:650,GTO:700,LAG:500,MANIAC:280}[_thinkStyle]||600;
-    const _thinkJitter={NIT:800,TAG:700,GTO:600,LAG:500,MANIAC:350}[_thinkStyle]||600;
+    const _persona=BOT_CONFIGS[idx-1]?BOT_CONFIGS[idx-1].id:'SOLVER';
+    // Think time by style: slow deliberate (ROCK/GRINDER) → snap (MANIAC/GAMBLER)
+    const _thinkBase={ROCK:1000,GRINDER:750,SOLVER:680,SHARK:600,PIRATE:480,GAMBLER:350,MANIAC:240}[_persona]||600;
+    const _thinkJitter={ROCK:900,GRINDER:700,SOLVER:620,SHARK:550,PIRATE:450,GAMBLER:380,MANIAC:300}[_persona]||600;
     setTimeout(()=>botTurn(idx),_thinkBase+Math.random()*_thinkJitter);
   }
 }
@@ -769,217 +794,479 @@ function pAct(type,amt=0){
   if(G.handOver)return;stopTmr();enAct(false);closeRaise();applyAct(HUMAN,type,amt);G.bPos++;setTimeout(nextTurn,250);
 }
 
-// ════════════════════════════ BOT PERSONALITIES ════════════════════════════
-// 7 distinct bot styles — one per seat, shuffled each session so seating is random
-const _allStyles=['NIT','TAG','TAG','GTO','GTO','LAG','MANIAC'];
-const BOT_STYLES=shuffleArr([..._allStyles]); // seat 1=BOT_STYLES[0], seat 2=BOT_STYLES[1], etc.
-const STYLE_PROFILE={
-  NIT:{vpip:.24,pfr:.18,b3:.06,cbet:.62,f3b:.60,bluff:.10,agg:.35},
-  TAG:{vpip:.36,pfr:.30,b3:.11,cbet:.80,f3b:.40,bluff:.22,agg:.52},
-  GTO:{vpip:.42,pfr:.36,b3:.14,cbet:.73,f3b:.34,bluff:.27,agg:.60},
-  LAG:{vpip:.50,pfr:.42,b3:.19,cbet:.87,f3b:.24,bluff:.37,agg:.64},
-  MANIAC:{vpip:.65,pfr:.56,b3:.31,cbet:.95,f3b:.12,bluff:.52,agg:.72},
-};
-const OPEN_RANGE={
-  NIT:[0.658,0.562,0.482,0.390,0.492,1.00],TAG:[0.523,0.467,0.404,0.335,0.432,1.00],
-  GTO:[0.450,0.388,0.322,0.272,0.350,1.00],LAG:[0.400,0.340,0.288,0.222,0.315,1.00],
-  MANIAC:[0.328,0.283,0.236,0.165,0.260,1.00],
-};
-const CALL_RANGE={
-  NIT:[0.740,0.717,0.672,0.585,0.673,0.503],TAG:[0.687,0.660,0.585,0.503,0.617,0.453],
-  GTO:[0.660,0.603,0.525,0.453,0.548,0.408],LAG:[0.585,0.525,0.473,0.408,0.488,0.355],
-  MANIAC:[0.503,0.453,0.408,0.330,0.433,0.295],
-};
-const TBET_RANGE={
-  NIT:[0.800,0.772,0.752,0.730,0.760,0.750],TAG:[0.705,0.682,0.660,0.632,0.652,0.642],
-  GTO:[0.638,0.615,0.592,0.565,0.585,0.575],LAG:[0.572,0.547,0.528,0.492,0.520,0.510],
-  MANIAC:[0.475,0.450,0.430,0.395,0.425,0.415],
+// ════════════════════════════════════════════════════════════════════════════
+// BOT ENGINE v3 — 7 DISTINCT PERSONAS, GTO MIXED STRATEGIES, REAL EQUITY
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── 7 Unique named personas with distinct archetypes ──
+// Each has calibrated 8-handed stats based on real poker research
+const BOT_PERSONAS = [
+  // name        style    vpip  pfr   b3    cbet  f3b   bluff  agg  foldFlop  image
+  { id:'ROCK',   vpip:.19, pfr:.15, b3:.05, cbet:.58, f3b:.65, bluff:.08, agg:.30, foldFlop:.68, img:'🪨' },
+  { id:'GRINDER',vpip:.28, pfr:.24, b3:.08, cbet:.75, f3b:.48, bluff:.16, agg:.44, foldFlop:.52, img:'⚙️' },
+  { id:'SOLVER', vpip:.38, pfr:.33, b3:.12, cbet:.70, f3b:.36, bluff:.28, agg:.58, foldFlop:.44, img:'🧮' }, // GTO-ish
+  { id:'SHARK',  vpip:.42, pfr:.38, b3:.16, cbet:.82, f3b:.30, bluff:.32, agg:.65, foldFlop:.38, img:'🦈' }, // GTO+
+  { id:'PIRATE', vpip:.52, pfr:.44, b3:.21, cbet:.88, f3b:.20, bluff:.40, agg:.68, foldFlop:.30, img:'🏴‍☠️' }, // LAG
+  { id:'GAMBLER',vpip:.62, pfr:.50, b3:.28, cbet:.92, f3b:.14, bluff:.48, agg:.72, foldFlop:.22, img:'🎰' }, // LAG+
+  { id:'MANIAC', vpip:.74, pfr:.62, b3:.38, cbet:.96, f3b:.08, bluff:.60, agg:.80, foldFlop:.14, img:'💥' },
+];
+
+// Shuffle personas and assign one per bot seat (seats 1-7)
+const _shuffledPersonas = shuffleArr([...BOT_PERSONAS]);
+// Each bot seat gets a persona + a unique ±6% personal bias
+const BOT_CONFIGS = _shuffledPersonas.map(p => ({
+  ...p,
+  bias: (Math.random()-0.5)*0.12,       // ±6% personal tendency
+  aggBias: (Math.random()-0.5)*0.08,    // ±4% aggression offset
+  bluffBias: (Math.random()-0.5)*0.10,  // ±5% bluff frequency offset
+}));
+
+// ── GTO Mixed Strategy Tables ──
+// Defines ACTION FREQUENCIES at each decision point for balanced play
+// [checkFreq, betSmall(0.33pot), betMed(0.67pot), betLarge(pot+), raiseFreq]
+const GTO_MIX = {
+  // Flop as PFR (c-bet frequencies by hand strength and board texture)
+  CBET_DRY:   { strong:0.90, medium:0.72, weak:0.45, air:0.38 }, // dry board: bet more
+  CBET_WET:   { strong:0.85, medium:0.55, weak:0.28, air:0.22 }, // wet board: check more
+  CBET_PAIRED:{ strong:0.82, medium:0.60, weak:0.35, air:0.30 },
+  // Turn barrel frequencies (when flop c-bet called)
+  TURN_BARREL:{ strong:0.85, medium:0.62, weak:0.38, air:0.28 },
+  // River value/bluff ratio (aim for ~1:1 bluff:value on air)
+  RIVER_VALUE:{ strong:0.95, medium:0.75, weak:0.40, air:0 },
+  RIVER_BLUFF:{ strong:0,    medium:0,    weak:0.12, air:0.42 },
+  // Call frequencies facing bets (pot odds + equity)
+  CALL_ALPHA: 0.50,  // minimum equity needed to call = betSize/(betSize+pot)
 };
 
+// ── Preflop Opening Ranges (% of hands) by position, 8-handed ──
+// Position: 0=UTG, 1=UTG+1, 2=MP, 3=CO/BTN, 4=SB, 5=BB
+// Values = minimum pfScore() needed to open (higher = tighter)
+const PF_OPEN = {
+  ROCK:   [0.72, 0.66, 0.60, 0.50, 0.58, 0.99], // ~12%, 14%, 16%, 20%, 18%, limps BB
+  GRINDER:[0.60, 0.54, 0.47, 0.38, 0.46, 0.99],
+  SOLVER: [0.52, 0.46, 0.39, 0.28, 0.37, 0.99], // ~18%, 22%, 26%, 35%, 28%
+  SHARK:  [0.48, 0.42, 0.35, 0.22, 0.32, 0.99],
+  PIRATE: [0.42, 0.36, 0.30, 0.18, 0.28, 0.99],
+  GAMBLER:[0.35, 0.29, 0.24, 0.14, 0.22, 0.99],
+  MANIAC: [0.26, 0.20, 0.16, 0.09, 0.16, 0.99],
+};
+
+// ── 3-bet value thresholds (pfScore >= this → 3bet for value) ──
+const PF_3BET_VALUE = {
+  ROCK:0.82, GRINDER:0.76, SOLVER:0.70, SHARK:0.65, PIRATE:0.58, GAMBLER:0.50, MANIAC:0.40
+};
+
+// ── Postflop equity estimation via lightweight Monte Carlo ──
+// Run N random runouts and count how often hole cards win
+function estimateEquity(hole, comm, nSims=200) {
+  if(!hole||hole.length<2) return 0.5;
+  const knownCards = new Set([...hole, ...comm].map(c=>c.r+c.s));
+  const deck = mkDk().filter(c=>!knownCards.has(c.r+c.s));
+  const needed = 5 - comm.length;
+  if(needed<=0) {
+    // River — compare against one random opponent
+    const d2 = shuffleArr([...deck]);
+    const myEv2 = evalH([...hole,...comm]);
+    const opEv2 = evalH([d2[0],d2[1],...comm]);
+    if(myEv2.rank > opEv2.rank) return 1.0;
+    if(myEv2.rank === opEv2.rank && cmpK(myEv2.k, opEv2.k) >= 0) return 0.75;
+    return 0.0;
+  }
+  let wins = 0;
+  for(let i=0; i<nSims; i++){
+    // Sample a random opponent hole + complete the board
+    const d = shuffleArr([...deck]);
+    const oppHole = [d[0], d[1]];
+    const board = needed===0 ? comm : [...comm, ...d.slice(2, 2+needed)];
+    const myEv  = evalH([...hole, ...board]);
+    const opEv  = evalH([...oppHole, ...board]);
+    if(myEv.rank > opEv.rank) wins++;
+    else if(myEv.rank === opEv.rank && cmpK(myEv.k, opEv.k) >= 0) wins += 0.5;
+  }
+  return wins / nSims;
+}
+
+// ── Enhanced draw detection ──
+function detectDraws(hole, comm) {
+  const all = [...hole, ...comm];
+  // Suit counts
+  const sc = {};
+  all.forEach(c => sc[c.s] = (sc[c.s]||0)+1);
+  const holeSuits = {};
+  hole.forEach(c => holeSuits[c.s] = (holeSuits[c.s]||0)+1);
+
+  const fd  = Object.values(sc).some(v => v >= 4);    // flush draw (4 to flush)
+  const bfd = Object.entries(sc).some(([suit,cnt]) => cnt===3 && holeSuits[suit]>=1); // backdoor fd
+
+  const vals = all.map(cv).sort((a,b)=>a-b);
+  const uv   = [...new Set(vals)];
+  // Add ace-low for wheel detection
+  if(uv.includes(14)) uv.unshift(1);
+
+  let oesd=false, gs=false, bdsd=false;
+  for(let i=0; i<=uv.length-4; i++){
+    const gap = uv[i+3]-uv[i];
+    if(gap===3) oesd=true;
+    if(gap===4) gs=true;
+  }
+  // Backdoor straight: 3 cards within 4-gap
+  for(let i=0; i<=uv.length-3; i++){
+    if(uv[i+2]-uv[i]<=4) bdsd=true;
+  }
+
+  const comboFD = fd && (oesd || gs);   // very powerful semi-bluff candidate
+
+  return { fd, bfd, oesd, gs, bdsd, comboFD };
+}
+
+// ── Board texture analysis ──
+function boardTexture(comm) {
+  if(!comm.length) return { wet:false, dry:true, paired:false, monotone:false, rainbow:true, connected:false, score:0 };
+  const vals = comm.map(cv);
+  const sc = {};
+  comm.forEach(c => sc[c.s] = (sc[c.s]||0)+1);
+  const maxSuit = Math.max(...Object.values(sc));
+  const sorted  = [...vals].sort((a,b)=>a-b);
+  let conn=0;
+  for(let i=0; i<sorted.length-1; i++) if(sorted[i+1]-sorted[i]<=2) conn++;
+  const paired    = new Set(vals).size < vals.length;
+  const flushy    = maxSuit >= 3;
+  const twotone   = maxSuit === 2;
+  const rainbow   = maxSuit === 1;
+  const monotone  = maxSuit >= comm.length && comm.length >= 3;
+  const connected = conn >= (comm.length-1);
+  const wet = (flushy || monotone) && connected;
+  const dry = rainbow && !connected;
+  // Wetness score 0-10 for bet sizing
+  const score = (flushy?3:twotone?1:0) + (connected?3:conn===1?1:0) + (paired?1:0) + (monotone?2:0);
+  return { wet, dry, paired, monotone, rainbow, connected, score };
+}
+
+// ── Hand category vs board ──
+function handCategory(rank, board, draws) {
+  // Returns: 'nut' | 'strong' | 'medium' | 'weak' | 'draw' | 'air'
+  if(rank >= 7) return 'nut';      // quads, SF, RF
+  if(rank >= 5) return 'strong';   // flush, straight, FH
+  if(rank === 4) {
+    if(board.paired) return 'medium'; // straight on paired board is weaker
+    return 'strong';
+  }
+  if(rank === 3) return board.wet ? 'medium' : 'strong';   // trips
+  if(rank === 2) return board.wet ? 'weak' : 'medium';     // two pair
+  if(rank === 1) {
+    if(draws.comboFD) return 'draw';
+    return board.paired ? 'medium' : 'weak';               // one pair
+  }
+  if(draws.fd || draws.oesd || draws.comboFD) return 'draw';
+  if(draws.gs || draws.bfd || draws.bdsd)    return 'draw';
+  return 'air';
+}
+
+// ── GTO bet sizing selection ──
+function gtoSize(cat, board, street, isIP, pot, chips, ca) {
+  // Returns raise amount (additional to call)
+  const sizeMap = {
+    nut:    { flop: board.dry?0.75:0.65, turn: 0.75, river: board.paired?1.0:1.2 },
+    strong: { flop: board.wet?0.55:0.65, turn: 0.65, river: 0.85 },
+    medium: { flop: board.dry?0.50:0.40, turn: 0.50, river: 0.60 },
+    weak:   { flop: 0.40, turn: 0.50, river: 0.50 },
+    draw:   { flop: 0.45, turn: 0.55, river: 0 },   // 0 on river (missed)
+    air:    { flop: 0.33, turn: 0.45, river: 0.80 }, // bluff big on river
+  };
+  const frac = (sizeMap[cat]||sizeMap.medium)[street] || 0.50;
+  return Math.min(chips, ca + Math.max(BB, Math.round(pot * frac)));
+}
+
+// ── Position utility ──
 function botPosition(idx){
-  const d=G.dealer;if(idx===d)return 3;
-  const sb=(d+1)%SEATS,bb=(d+2)%SEATS;
-  if(idx===sb)return 4;if(idx===bb)return 5;
-  const dist=(idx-bb+SEATS)%SEATS;if(dist<=2)return 0;if(dist===3)return 1;if(dist===4)return 1;return 2;
+  const d=G.dealer;
+  if(idx===d) return 3;           // BTN
+  const sb=(d+1)%SEATS, bb=(d+2)%SEATS;
+  if(idx===sb) return 4;          // SB
+  if(idx===bb) return 5;          // BB
+  const dist=(idx-bb+SEATS)%SEATS;
+  if(dist<=2) return 0;           // UTG
+  if(dist===3) return 1;          // UTG+1
+  return 2;                       // MP/HJ
 }
 
 function botTurn(idx){
-  if(G.handOver)return;stopSeatTmr(idx);
-  const s=G.seats[idx];if(!s.hole||s.hole.length<2)return;
-  const style=BOT_STYLES[idx-1]; // each seat has its own fixed style from the shuffled array
-  const Pbase=STYLE_PROFILE[style];
-  const P={
-    ...Pbase,
-    cbet : s._adaptCbet  !==null ? s._adaptCbet  : Pbase.cbet,
-    bluff: s._adaptBluff !==null ? s._adaptBluff : Pbase.bluff,
-    agg  : s._adaptAgg   !==null ? s._adaptAgg   : Pbase.agg,
+  if(G.handOver) return;
+  stopSeatTmr(idx);
+  const s = G.seats[idx];
+  if(!s.hole || s.hole.length<2) return;
+  let type='check', amt=0; // MUST be declared — prevents global scope pollution
+
+  const cfg  = BOT_CONFIGS[idx-1];
+  const P    = {
+    ...cfg,
+    cbet : s._adaptCbet   !== null ? s._adaptCbet   : cfg.cbet,
+    bluff: s._adaptBluff  !== null ? s._adaptBluff  : cfg.bluff,
+    agg  : s._adaptAgg    !== null ? s._adaptAgg    : cfg.agg,
   };
-  // Per-bot bias: small personal offset so bots with same style still differ slightly
-  const bias = s._bias||0;
-  const ca=Math.max(0,G.toCall-s.bet);const pot=Math.max(G.pot,1);const street=G.phase;
-  const r=Math.random();const pos=botPosition(idx);const nAct=inHand().length;
-  const isIP=(pos===3)||(pos===2&&nAct<=3);
-  // SPR = effective stack / pot — drives stack-off decisions
-  const effStack=Math.min(s.chips,...inHand().filter(i=>i!==idx).map(i=>G.seats[i].chips));
-  const spr=pot>0?effStack/pot:99;
-  const isShortSPR=spr<4;   // commit territory — pairs+draws are auto stack-offs
-  const isDeepSPR=spr>15;   // implied odds territory — speculative hands gain value
-  const h=s.hole;const v1=cv(h[0]),v2=cv(h[1]);const suited=h[0].s===h[1].s;
-  const hi=Math.max(v1,v2),lo=Math.min(v1,v2),gap=hi-lo;
-  const isPair=v1===v2,pairRank=isPair?v1:0;
-  const isSC=suited&&gap<=2&&lo>=5;const isBroadway=lo>=10&&hi>=10;
+  const bias      = P.bias||0;
+  const aggBias   = P.aggBias||0;
+  const bluffBias = P.bluffBias||0;
+
+  const ca    = Math.max(0, G.toCall - s.bet);
+  const pot   = Math.max(G.pot, 1);
+  const phase = G.phase;
+  const pos   = botPosition(idx);
+  const nAct  = inHand().length;
+  const isIP  = (pos===3) || (pos===2 && nAct<=3);
+  const r     = Math.random();
+
+  // SPR (stack to pot ratio)
+  const effStack = Math.min(s.chips, ...inHand().filter(j=>j!==idx).map(j=>G.seats[j].chips));
+  const spr      = pot>0 ? effStack/pot : 99;
+  const shortSPR = spr < 4;
+  const deepSPR  = spr > 16;
+
+  // Hole cards
+  const h = s.hole;
+  const v1=cv(h[0]), v2=cv(h[1]);
+  const suited = h[0].s===h[1].s;
+  const hi=Math.max(v1,v2), lo=Math.min(v1,v2), gap=hi-lo;
+  const isPair=v1===v2, pairRank=isPair?v1:0;
+  const isSC   = suited && gap<=2 && lo>=5;
+  const isBway = lo>=10 && hi>=10;
+
+  // ── Preflop hand strength (pfScore) ──
   function pfScore(){
-    let sc=0;if(isPair){sc=0.32+((pairRank-2)/12)*0.53;}
-    else{sc=(hi-2)/12*0.44+(lo-2)/12*0.18;if(suited)sc+=0.07;if(gap===1)sc+=0.09;else if(gap===2)sc+=0.05;
-      if(isBroadway)sc+=0.08;if(hi===14&&lo>=10)sc+=0.10;if(hi===14&&lo>=8&&suited)sc+=0.06;
-      if(!suited&&gap>3&&!isBroadway)sc-=0.10;if(!suited&&gap>5)sc-=0.06;}
-    return Math.max(0,Math.min(1,sc));
+    if(isPair)      return 0.30 + ((pairRank-2)/12)*0.54;
+    let sc = (hi-2)/12*0.44 + (lo-2)/12*0.18;
+    if(suited)  sc += 0.07;
+    if(gap===1) sc += 0.09; else if(gap===2) sc += 0.05;
+    if(isBway)  sc += 0.08;
+    if(hi===14 && lo>=10) sc += 0.10;
+    if(hi===14 && lo>=8 && suited) sc += 0.06;
+    if(!suited && gap>3 && !isBway) sc -= 0.10;
+    if(!suited && gap>5)            sc -= 0.06;
+    return Math.max(0, Math.min(1, sc));
   }
-  function postRank(){if(!G.comm.length)return -1;return evalH([...h,...G.comm]).rank;}
-  function drawOuts(){
-    const all=[...h,...G.comm];const sc={};all.forEach(c=>sc[c.s]=(sc[c.s]||0)+1);
-    const fd=Object.values(sc).some(v=>v>=4);
-    const vals=[...new Set(all.map(c=>cv(c)))].sort((a,b)=>a-b);
-    let oesd=false,gs=false;
-    for(let i=0;i<=vals.length-4;i++){const sp=vals[i+3]-vals[i];if(sp===3)oesd=true;if(sp===4)gs=true;}
-    return{fd,oesd,gs};
-  }
-  function R(frac){return Math.min(s.chips,ca+Math.max(BB,Math.round(pot*frac)));}
-  function openSz(){const m=pos===3?2.5:pos===4?3.0:pos===2?2.75:pos===1?2.75:3.0;return Math.min(s.chips,Math.round(BB*m));}
-  function tBetSz(){const m=isIP?3.0:4.0;return Math.min(s.chips,Math.max(G.toCall*m,BB*9));}
-  function fBetSz(){return Math.min(s.chips,Math.max(G.toCall*2.3,BB*20));}
+
+  // ── Opponent profiling ──
   function oppRead(i){
-    const o=G.seats[i];if(!o||o.handsDealt<5)return{loose:false,tight:false,passive:false,ftc:0.50,vpip:0.42};
-    const hd=o.handsDealt;const ov=o.vpipCount/hd,op=o.pfrCount/hd;
-    const oftc=o.facedCbet>3?o.foldToCbet/o.facedCbet:0.50;
-    return{loose:ov>0.52,tight:ov<0.26,passive:(ov-op)>0.18,ftc:oftc,foldsToCbet:oftc>0.68,vpip:ov};
+    const o = G.seats[i];
+    if(!o || o.handsDealt<4) return { loose:false, tight:false, passive:false, ftc:0.50, vpip:0.40 };
+    const ov = o.vpipCount/o.handsDealt;
+    const op = o.pfrCount/o.handsDealt;
+    const ftc = o.facedCbet>3 ? o.foldToCbet/o.facedCbet : 0.50;
+    return { loose:ov>0.52, tight:ov<0.24, passive:(ov-op)>0.20, ftc, foldsToCbet:ftc>0.65, vpip:ov };
   }
   function tableRead(){
-    const opp=inHand().filter(i=>i!==idx);if(!opp.length)return{loose:false,tight:false,avgVpip:0.42};
-    const avg=opp.reduce((s,i)=>{const o=G.seats[i];return s+(o.handsDealt>4?o.vpipCount/o.handsDealt:0.42);},0)/opp.length;
-    return{loose:avg>0.52,tight:avg<0.28,avgVpip:avg};
+    const opp = inHand().filter(j=>j!==idx);
+    if(!opp.length) return { loose:false, tight:false, avgVpip:0.40 };
+    const avg = opp.reduce((a,j)=>{
+      const o=G.seats[j]; return a+(o.handsDealt>3?o.vpipCount/o.handsDealt:0.40);
+    },0)/opp.length;
+    return { loose:avg>0.50, tight:avg<0.26, avgVpip:avg };
   }
-  let type='check',amt=0;const pf=pfScore();
-  if(street==='pre'){
-    const facingOpen=G.toCall>BB;const facing3bet=G.toCall>=BB*3.5;const facing4bet=G.toCall>=BB*10;
-    const tr=tableRead();let openThresh=OPEN_RANGE[style][pos];
-    // Adapt preflop opening to table VPIP: exploit tight tables (open wider), tighten vs maniacs
-    const tableAdj=(tr.avgVpip-0.42)*0.18; // if table avg VPIP 0.55 → −0.023 (tighten), 0.30 → +0.022 (loosen)
-    openThresh=Math.max(0.10,Math.min(0.78,openThresh-tableAdj+bias));
+
+  const tr = tableRead();
+
+  // ═══════════════════════════ PRE-FLOP ═══════════════════════════
+  if(phase==='pre'){
+    const pf = pfScore();
+    const facingOpen  = G.toCall > BB;
+    const facing3bet  = G.toCall >= BB*3.5;
+    const facing4bet  = G.toCall >= BB*10;
+    const openThresh  = Math.max(0.10, Math.min(0.80,
+      (PF_OPEN[cfg.id]||PF_OPEN.SOLVER)[pos]
+      - (tr.avgVpip-0.40)*0.15   // table-dynamic adjustment
+      + bias                      // personal tendency
+    ));
+    const v3Thresh = PF_3BET_VALUE[cfg.id]||0.70;
+
     if(!facingOpen){
-      if(isShortSPR&&pf>=openThresh*0.85){type='raise';amt=s.chips;} // short stack shoves wide
-      else if(pf>=openThresh){type='raise';amt=openSz();}else if(ca===0){type='check';}else{type='fold';}
+      // Opening action
+      if(shortSPR && pf>=openThresh*0.82){ type='raise'; amt=s.chips; }
+      else if(pf >= openThresh){
+        type='raise';
+        // Open sizing: position-aware, style-aware
+        const mult = pos===3?2.3: pos<=1?3.0: pos===4?3.0: 2.6;
+        amt = Math.min(s.chips, Math.round(BB*mult));
+      } else if(ca===0){ type='check'; } else { type='fold'; }
+
     } else if(!facing3bet){
-      const vtm=TBET_RANGE[style][pos];let callMin=CALL_RANGE[style][pos];
-      const openers=inHand().filter(i=>i!==idx&&G.seats[i].bet>=G.toCall);
-      const oRead=openers.length?oppRead(openers[0]):{};
-      if(oRead.tight)callMin=Math.min(callMin+0.04,0.55);if(oRead.loose)callMin=Math.max(callMin-0.04,0.15);
-      const bluff3b=oRead.passive?P.b3*2.2:P.b3*1.8;
-      if(pf>=vtm){type='raise';amt=tBetSz();}
-      else if(isSC&&pos>=2&&r<bluff3b){type='raise';amt=tBetSz();}
-      else if(isDeepSPR&&isSC&&pos>=2&&pf>=callMin*0.82){type='call';} // deep: SC has big implied odds
-      else if(isPair&&pairRank<=6&&pos>=3&&r<P.b3*1.2){type='raise';amt=tBetSz();}
-      else if(pf>=callMin){type='call';}else if(ca===0){type='check';}else{type='fold';}
+      // Facing an open: 3bet, call, or fold
+      const openers = inHand().filter(j=>j!==idx && G.seats[j].bet>=G.toCall);
+      const oRead   = openers.length ? oppRead(openers[0]) : {};
+      let callMin   = openThresh * 0.78;                // call wider than open
+      if(oRead.tight) callMin = Math.min(callMin+0.04, 0.60);
+      if(oRead.loose) callMin = Math.max(callMin-0.04, 0.14);
+
+      // 3-bet range: value (nutted) + bluff (suited connectors, A-x suited)
+      const is3betValue  = pf >= v3Thresh;
+      const is3betBluff  = (isSC && pos>=2 && r<P.b3*1.6) ||
+                           (isPair && pairRank<=5 && pos>=3 && r<P.b3) ||
+                           (hi===14 && suited && lo<=6 && pos>=2 && r<P.b3*1.2);
+      const tBetMult = isIP ? 3.0 : 3.8;
+      const tBetAmt  = Math.min(s.chips, Math.max(G.toCall*tBetMult, BB*10));
+
+      if(is3betValue){ type='raise'; amt=tBetAmt; }
+      else if(is3betBluff){ type='raise'; amt=tBetAmt; }
+      else if(deepSPR && isSC && pos>=2 && pf>=callMin*0.80){ type='call'; } // implied odds
+      else if(pf>=callMin){ type='call'; }
+      else if(ca===0){ type='check'; }
+      else { type='fold'; }
+
     } else if(!facing4bet){
-      const def=1-P.f3b;const callThresh=0.481-def*0.278;const specDef=def>0.65;
-      if(pairRank>=14){type='raise';amt=fBetSz();}
-      else if(pairRank===13){type=r<0.85?'raise':'call';if(type==='raise')amt=fBetSz();}
-      else if(pf>=0.82&&r<0.60){type='raise';amt=fBetSz();}
-      else if(pf>=0.72){type='call';}else if(pf>=callThresh){type='call';}
-      else if(specDef&&isSC&&r<def*0.90){type='call';}
-      else if(specDef&&isPair&&pairRank>=5&&r<def*0.70){type='call';}
-      else if(isSC&&pos===3&&r<P.b3*0.5){type='raise';amt=fBetSz();}
-      else if(r<def*0.55){type='call';}else{type='fold';}
+      // Facing 3-bet: 4bet or call or fold
+      const def = 1 - P.f3b;
+      if(pairRank>=14){ type='raise'; amt=Math.min(s.chips, Math.max(G.toCall*2.5, BB*22)); }
+      else if(pairRank===13 && r<0.80){ type='raise'; amt=Math.min(s.chips, Math.max(G.toCall*2.5, BB*22)); }
+      else if(pf>=0.80){ type='call'; }
+      else if(pf>=0.68){ type='call'; }
+      else if(isSC && deepSPR && r<def*0.85){ type='call'; }
+      else if(isPair && pairRank>=5 && r<def*0.65){ type='call'; }
+      else if(r<def*0.45){ type='call'; }
+      else { type='fold'; }
+
     } else {
-      if(pairRank===14){type='raise';amt=s.chips;}else if(pairRank===13&&r<0.50){type='call';}else{type='fold';}
+      // Facing 4-bet: shove or fold
+      if(pairRank>=14){ type='raise'; amt=s.chips; }
+      else if(pairRank===13 && r<0.60){ type='call'; }
+      else { type='fold'; }
     }
+
+  // ═══════════════════════════ POST-FLOP ═══════════════════════════
   } else {
-    const rank=postRank();const{fd,oesd,gs}=drawOuts();
-    function boardTex(){
-      if(!G.comm.length)return{wet:false,dry:true,paired:false};
-      const vals=G.comm.map(c=>cv(c));const sc={};G.comm.forEach(c=>sc[c.s]=(sc[c.s]||0)+1);
-      const maxSuit=Math.max(...Object.values(sc));const sorted=[...vals].sort((a,b)=>a-b);
-      let conn=0;for(let i=0;i<sorted.length-1;i++)if(sorted[i+1]-sorted[i]<=2)conn++;
-      const flushy=maxSuit>=2,straight=conn>=1;const paired=new Set(vals).size<vals.length;
-      return{wet:flushy&&straight,dry:!flushy&&!straight,paired};
+    const rank  = G.comm.length>=2 ? evalH([...h,...G.comm]).rank : -1;
+    const draws = detectDraws(h, G.comm);
+    const board = boardTexture(G.comm);
+    const cat   = handCategory(rank, board, draws);
+
+    // Real equity estimate (lightweight MC)
+    // Use fewer sims for speed, more for close decisions
+    const useFullMC = (cat==='draw'||cat==='weak'||cat==='medium');
+    const equity    = useFullMC ? estimateEquity(h, G.comm, nAct>3?40:60) : (
+      cat==='nut'?0.92: cat==='strong'?0.78: cat==='medium'?0.62: cat==='weak'?0.45: 0.28
+    );
+
+    // Multi-way equity discount (real players discount equity vs more opponents)
+    const mwFactor  = Math.max(0.65, 1 - (nAct-2)*0.10);
+    const adjEquity = Math.min(0.97, equity * mwFactor);
+
+    // Pot odds threshold
+    const callEq = ca>0 ? ca/(ca+pot+ca) : 0; // MDF: ca/(pot+ca) is correct
+    const potOdds = ca>0 ? ca/(pot+ca) : 0;
+    const hasPotOdds = adjEquity > potOdds;
+    const goodCallEq = adjEquity > potOdds + 0.06; // with implied odds buffer
+
+    // Track who was PFR (preflop raiser) for cbet logic
+    const wasPFR = s._pfrThisHand===true;
+
+    // ── Cbet/probe bet frequencies by GTO mix ──
+    const btKey = board.dry?'CBET_DRY': board.monotone?'CBET_WET': board.wet?'CBET_WET':'CBET_PAIRED';
+    const cbetFreqs = GTO_MIX[btKey];
+    const cbetFreq  = cbetFreqs[cat] || 0;
+    // Adjust for personality
+    const cbetActual = Math.min(0.97, Math.max(0.05,
+      cbetFreq * (P.cbet/0.73) + aggBias
+    ));
+
+    const anyFolds   = inHand().filter(j=>j!==idx).some(j=>oppRead(j).foldsToCbet);
+    const bluffFreq  = Math.min(0.80, P.bluff*(1+bluffBias) * (anyFolds?1.3:1.0) * (tr.tight?1.25:tr.loose?0.70:1.0));
+
+    function R(frac){ return Math.min(s.chips, ca+Math.max(BB, Math.round(pot*frac))); }
+
+    // ── DONK BET (LAG/MANIAC/GAMBLER/PIRATE lead out regardless of PFR) ──
+    const canDonk = ca===0 && (phase==='flop'||phase==='turn') && !wasPFR &&
+                    (cfg.id==='MANIAC'||cfg.id==='GAMBLER'||cfg.id==='PIRATE');
+    if(canDonk){
+      if(cat==='nut'||cat==='strong')      { type='raise'; amt=R(0.55); }
+      else if(cat==='draw' && r<bluffFreq*0.7){ type='raise'; amt=R(0.45); }
+      else if(cat==='air' && r<bluffFreq*0.25 && !board.wet){ type='raise'; amt=R(0.40); }
     }
-    const board=boardTex();
-    const rankEq=[0.18,0.45,0.64,0.74,0.88,0.91,0.95,0.98,0.99,1.0];
-    let eq=rank>=0?rankEq[Math.min(rank,9)]:0.18;
-    if(G.comm.length<5){if(fd)eq+=0.17;if(oesd)eq+=0.15;else if(gs)eq+=0.08;}
-    eq=Math.min(0.99,eq);
-    const mwDisc=Math.max(0,(nAct-2)*0.07);const adjEq=Math.max(0.05,eq-mwDisc);const callEq=ca>0?ca/(ca+pot):0;
-    const tr2=tableRead();const anyFoldsToCbet=inHand().filter(i=>i!==idx).some(i=>oppRead(i).foldsToCbet);
-    const cbetBase=board.wet?P.cbet*0.58:board.dry?P.cbet*1.05:P.cbet*0.80;
-    const cbetAdj=anyFoldsToCbet?Math.min(cbetBase*1.20,P.cbet*1.05):cbetBase;
-    const bluffAdj=tr2.loose?P.bluff*0.62:anyFoldsToCbet?P.bluff*1.35:tr2.tight?P.bluff*1.25:P.bluff;
-    const valMul=tr2.loose?1.12:1.0;const aggGate=P.agg;
-    // Donk-bet: MANIAC/LAG sometimes lead into preflop aggressor (disrupts their cbet range)
-    const isDonkSpot=ca===0&&(street==='flop'||street==='turn')&&(style==='MANIAC'||style==='LAG');
-    if(isDonkSpot&&rank>=2&&r<P.agg*0.22){type='raise';amt=R(0.55);} // donk value bet
-    else if(isDonkSpot&&rank===0&&r<P.bluff*0.18&&!boardTex().wet){type='raise';amt=R(0.45);} // donk bluff dry board
-    else if(street==='flop'){
+
+    if(type==='check'){  // not yet decided by donk
+    // ── Short SPR: commit with strong hands ──
+    if(shortSPR && (cat==='nut'||cat==='strong'||(cat==='medium'&&isIP))){
+      type='raise'; amt=s.chips;
+    }
+
+    // ── Street-by-street logic ──
+    else if(phase==='flop'){
       if(ca===0){
-        if(isShortSPR&&rank>=1){type='raise';amt=s.chips;} // short SPR: commit with any made hand
-        else if(rank>=2){const sz=Math.min((rank>=4?0.80:rank===3?0.70:0.60)*valMul,1.0);type='raise';amt=R(sz);}
-        else if(rank===1&&r<cbetAdj){type='raise';amt=R(isIP?0.55:0.65);}
-        else if((fd||oesd)&&r<cbetAdj*0.85){type='raise';amt=R(0.50);}
-        else if(rank===0&&r<bluffAdj&&!board.wet){type='raise';amt=R(0.50);}
-        else{type='check';}
+        // Check or bet (as PFR: c-bet; as non-PFR: probe or slow-play)
+        if(wasPFR || (r < P.cbet*0.35)){  // non-PFR probes ~35% of cbet freq
+          if(cat==='nut'||cat==='strong'){ type='raise'; amt=gtoSize(cat,board,'flop',isIP,pot,s.chips,0); }
+          else if(cat==='medium' && r<cbetActual*0.80){ type='raise'; amt=gtoSize(cat,board,'flop',isIP,pot,s.chips,0); }
+          else if(cat==='draw' && r<cbetActual*(draws.comboFD?1.0:0.65)){ type='raise'; amt=gtoSize('draw',board,'flop',isIP,pot,s.chips,0); }
+          else if(cat==='air' && r<bluffFreq*(board.dry?1.0:0.55)){ type='raise'; amt=R(0.33); }
+          else { type='check'; }
+        } else { type='check'; }  // non-PFR checks flop more
       } else {
-        if(rank>=3){type='raise';amt=R(0.85);}
-        else if(rank===2&&r<(0.40+aggGate*0.30)){type='raise';amt=R(0.75);}
-        else if(adjEq>=callEq+0.06){type='call';}
-        else if((fd||oesd)&&adjEq>=callEq){type='call';}
-        else if(rank===0&&r<bluffAdj*0.55){type='raise';amt=R(0.80);}
-        else if(adjEq<callEq*0.80){type='fold';}
-        else{type='call';}
-      }
-    } else if(street==='turn'){
-      const turnGate=cbetAdj*0.78;
-      if(ca===0){
-        if(rank>=3){type='raise';amt=R(rank>=5?0.90:0.75);}
-        else if(rank===2&&r<turnGate){type='raise';amt=R(0.65);}
-        else if(rank===1&&isIP&&r<turnGate*0.55){type='raise';amt=R(0.65);}
-        else if((fd||oesd)&&r<turnGate*0.70){type='raise';amt=R(0.70);}
-        else if(rank===0&&isIP&&r<bluffAdj*0.42){type='raise';amt=R(0.70);}
-        else{type='check';}
-      } else {
-        if(rank>=4){type='raise';amt=R(0.90);}
-        else if(rank===3&&r<(0.45+aggGate*0.25)){type='raise';amt=R(0.80);}
-        else if(adjEq>=callEq+0.05){type='call';}
-        else if((fd||oesd)&&adjEq>=callEq){type='call';}
-        else if(rank<=1&&r<bluffAdj*0.32){type='raise';amt=R(0.85);}
-        else if(adjEq<callEq*0.75){type='fold';}
-        else{type=adjEq>=callEq?'call':'fold';}
-      }
-    } else if(street==='river'){
-      if(ca===0){
-        if(rank>=4){type='raise';amt=R(rank>=6?1.20:0.90);}
-        else if(rank>=2&&r<P.cbet*0.65*valMul){type='raise';amt=R(0.70);}
-        else if(rank===1&&isIP&&r<P.cbet*0.28){type='raise';amt=R(0.50);}
-        else if(rank===0&&isIP&&r<bluffAdj*0.38){type='raise';amt=R(0.85);}
-        else{type='check';}
-      } else {
-        if(rank>=5){type='raise';amt=R(1.10);}
-        else if(rank>=3&&r<(0.35+aggGate*0.25)){type='raise';amt=R(0.90);}
-        else if(rank>=2&&(style==='MANIAC'||style==='LAG')&&r<P.agg*0.28&&isIP){type='raise';amt=R(0.80);} // LAG/MANIAC river pressure
-        else if(rank>=2&&adjEq>=callEq+0.08){type='call';}
-        else if(rank===1&&adjEq>=callEq+0.04){type='call';}
-        else if(rank===0&&r<bluffAdj*(0.40+bias)){type='raise';amt=R(1.00);} // missed draw bluff
-        else if(adjEq<callEq){type='fold';}
-        else{type='call';}
+        // Facing a bet on flop
+        if(cat==='nut'){ type='raise'; amt=gtoSize('nut',board,'flop',isIP,pot,s.chips,ca); }
+        else if(cat==='strong' && r<(0.45+P.agg*0.25)){ type='raise'; amt=gtoSize('strong',board,'flop',isIP,pot,s.chips,ca); }
+        else if(goodCallEq){ type='call'; }
+        else if(cat==='draw' && hasPotOdds){ type='call'; }
+        else if(cat==='air' && r<bluffFreq*0.45){ type='raise'; amt=R(0.80); } // float/bluff-raise
+        else if(adjEquity < potOdds*0.75){ type='fold'; }
+        else { type='call'; }
       }
     }
+
+    else if(phase==='turn'){
+      const barrelFreq = GTO_MIX.TURN_BARREL[cat]||0.30;
+      const barrelActual = Math.min(0.95, barrelFreq*(P.agg/0.60) + aggBias);
+      if(ca===0){
+        if(cat==='nut'||cat==='strong'){ type='raise'; amt=gtoSize(cat,board,'turn',isIP,pot,s.chips,0); }
+        else if(cat==='medium' && r<barrelActual){ type='raise'; amt=gtoSize('medium',board,'turn',isIP,pot,s.chips,0); }
+        else if(cat==='draw' && r<barrelActual*(draws.comboFD?0.90:0.60)){ type='raise'; amt=gtoSize('draw',board,'turn',isIP,pot,s.chips,0); }
+        else if(cat==='air' && isIP && r<bluffFreq*0.40){ type='raise'; amt=R(0.65); }
+        else { type='check'; }
+      } else {
+        if(cat==='nut'){ type='raise'; amt=gtoSize('nut',board,'turn',isIP,pot,s.chips,ca); }
+        else if(cat==='strong' && r<(0.40+P.agg*0.22)){ type='raise'; amt=gtoSize('strong',board,'turn',isIP,pot,s.chips,ca); }
+        else if(goodCallEq){ type='call'; }
+        else if(cat==='draw' && hasPotOdds){ type='call'; }
+        else if(cat==='air' && r<bluffFreq*0.28){ type='raise'; amt=R(0.80); }
+        else if(adjEquity < potOdds*0.70){ type='fold'; }
+        else if(hasPotOdds){ type='call'; }
+        else { type='fold'; }
+      }
+    }
+
+    else if(phase==='river'){
+      if(ca===0){
+        if(cat==='nut'){ type='raise'; amt=gtoSize('nut',board,'river',isIP,pot,s.chips,0); }
+        else if(cat==='strong' && r<GTO_MIX.RIVER_VALUE.strong*(P.agg/0.60)){ type='raise'; amt=gtoSize('strong',board,'river',isIP,pot,s.chips,0); }
+        else if(cat==='medium' && r<GTO_MIX.RIVER_VALUE.medium*(P.agg/0.60)){ type='raise'; amt=gtoSize('medium',board,'river',isIP,pot,s.chips,0); }
+        // River bluff: missed draws + pure air at correct frequency
+        else if((cat==='air'||cat==='draw') && isIP && r<GTO_MIX.RIVER_BLUFF.air*bluffFreq){ type='raise'; amt=gtoSize('air',board,'river',isIP,pot,s.chips,0); }
+        else { type='check'; }
+      } else {
+        if(cat==='nut'){ type='raise'; amt=gtoSize('nut',board,'river',isIP,pot,s.chips,ca); }
+        else if(cat==='strong' && r<(0.32+P.agg*0.22)){ type='raise'; amt=gtoSize('strong',board,'river',isIP,pot,s.chips,ca); }
+        // Aggressive styles: pressure raise with medium on river
+        else if(cat==='medium' && (cfg.id==='MANIAC'||cfg.id==='GAMBLER'||cfg.id==='PIRATE') && isIP && r<P.agg*0.24){ type='raise'; amt=R(0.85); }
+        else if(cat==='medium' && adjEquity>=potOdds+0.10){ type='call'; }
+        else if(cat==='weak'   && adjEquity>=potOdds+0.08){ type='call'; }
+        else if((cat==='air'||cat==='draw') && r<bluffFreq*GTO_MIX.RIVER_BLUFF.air){ type='raise'; amt=R(1.00); }
+        else if(adjEquity < potOdds){ type='fold'; }
+        else { type='call'; }
+      }
+    }
+    } // end if(type==='check')
   }
-  if(type==='fold'&&ca===0)type='check';
-  if(type==='raise'&&amt<=ca)type=ca===0?'check':'call';
-  if(type==='raise'&&s.chips<=0)type=ca===0?'check':'call';
-  if(type==='call'&&ca>=s.chips){type='raise';amt=s.chips;}
-  if(type==='raise'&&amt>s.chips)amt=s.chips;
-  if(type==='raise'&&amt<ca+BB&&ca>0)type='call';
-  applyAct(idx,type,amt);G.bPos++;setTimeout(nextTurn,420+Math.random()*480); // natural pacing
+
+  // ── Sanity corrections ──
+  if(type==='fold' && ca===0) type='check';
+  if(type==='raise' && (amt<=ca||amt<=0)) type = ca===0?'check':'call';
+  if(type==='raise' && s.chips<=0) type = ca===0?'check':'call';
+  if(type==='call'  && ca>=s.chips){ type='raise'; amt=s.chips; }
+  if(type==='raise' && amt>s.chips) amt=s.chips;
+  if(type==='raise' && ca>0 && amt<ca+BB) type='call';
+
+  applyAct(idx, type, amt);
+  G.bPos++;
+  setTimeout(nextTurn, 420+Math.random()*480);
 }
+
+
 
 function applyAct(idx,type,rAmt=0){
   const s=G.seats[idx];const ca=Math.max(0,G.toCall-s.bet);let msg='';
@@ -995,7 +1282,7 @@ function applyAct(idx,type,rAmt=0){
     if(ca>0&&!s._facedCbetThisHand){s._facedCbetThisHand=true;s.facedCbet++;if(type==='fold')s.foldToCbet++;}
   }
   if(s.handsDealt>0&&s.handsDealt%8===0){
-    const Pb=STYLE_PROFILE[BOT_STYLES[idx-1]];
+    const Pb=BOT_CONFIGS[idx-1]||BOT_CONFIGS[0];
     const myCbet=s.cbetOpp>3?s.cbetCount/s.cbetOpp:Pb.cbet;
     const myFtc=s.facedCbet>3?s.foldToCbet/s.facedCbet:Pb.f3b;
     const myAgg=s.postFlopOpp>3?s.postFlopBet/s.postFlopOpp:Pb.agg;
@@ -1085,6 +1372,18 @@ function showdown(){
   showOv(w.seat.isH?'🏆 YOU WIN!':'Hand Over',body);schedNext();
 }
 
+function playNow(){
+  document.getElementById('bstart').classList.remove('on');
+  // Fill all seats with bots and start immediately
+  G.seats.forEach((s,i)=>{if(i===0)return;s.name=BNAMES[i-1];s.emoji=BOT_CONFIGS[i-1]?BOT_CONFIGS[i-1].img:BEMOJIS[i-1];s.isBot=true;});
+  document.querySelectorAll('.seat').forEach(e=>e.remove());initSeatEls();
+  chat('sys','🤖 Playing vs bots. Good luck!');
+  setTimeout(()=>{if(G.seats[HUMAN].chips>0)newHand();},400);
+}
+function playWithFriends(){
+  document.getElementById('bstart').classList.remove('on');
+  wrInit();
+}
 function schedNext(){
   let cd=5;const bar=document.getElementById('adt'),cnt=document.getElementById('adc');
   cnt.textContent=cd;bar.classList.add('show');
@@ -1099,7 +1398,11 @@ function doBuyIn(amt){
   G.seats[HUMAN].chips+=amt;SND.chip();
   document.getElementById('mychips').innerHTML=`<em>STACK </em>${fmt(G.seats[HUMAN].chips)}`;
   chat('sys',`💰 You bought in for ${fmt(amt)} chips.`);
-  closeBuyIn();if(G.handOver)wrInit();
+  closeBuyIn();
+  if(G.handOver){
+    // Let player choose: play solo vs bots now, or invite friends
+    document.getElementById('bstart').classList.add('on');
+  }
 }
 
 // ════════════════════════════ CHAT ════════════════════════════
@@ -1263,7 +1566,7 @@ if(_urlTable){
   _handleInviteJoin(_urlTable);
 } else {
   chat('sys','🇬🇹 Welcome to Mesa de Poker Guatemala!');
-  chat('sys','Buy in to start. Copy the invite link to bring friends — bots fill empty seats automatically.');
+  chat('sys','$1/$2 blinds. Buy in to start — bots fill empty seats automatically.');
   showBuyIn();
 }
 </script>
