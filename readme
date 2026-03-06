@@ -1,0 +1,90 @@
+# 🃏 Mesa de Poker Guatemala
+
+A browser-based Texas Hold'em poker training app where you play 8-handed against seven AI bots, each with a distinct personality and self-learning strategy engine. Built as a single HTML file — no backend required for solo play.
+
+**Live demo:** [my-poker-tracker-5i2f.vercel.app](https://my-poker-tracker-5i2f.vercel.app)
+
+---
+
+## What It Does
+
+Play real $1/$2 No-Limit Texas Hold'em against seven bots that think, adapt, and exploit you the longer you play. The bots are not scripted — they evaluate board texture, calculate equity in real time, read your tendencies, and adjust their strategy every 8 hands based on what's working at the table.
+
+---
+
+## Bot Intelligence
+
+### 7 Distinct Personas
+Each session randomly seats seven unique bot archetypes across the table:
+
+| Bot | Style | VPIP | Aggression |
+|-----|-------|------|------------|
+| 🪨 ROCK | Ultra-nit | 19% | Minimal |
+| ⚙️ GRINDER | Tight-aggressive | 28% | Controlled |
+| 🧮 SOLVER | GTO-balanced | 38% | Precise |
+| 🦈 SHARK | GTO+ exploitative | 42% | High |
+| 🏴‍☠️ PIRATE | Loose-aggressive | 52% | Very high |
+| 🎰 GAMBLER | LAG+ | 62% | Relentless |
+| 💥 MANIAC | Ultra-loose | 74% | Maximum |
+
+Every bot also receives a unique ±6% random personal bias at session start, so even two bots of the same type play differently from each other.
+
+### GTO Strategy Engine
+- **Mixed strategy frequencies** — bet/check decisions follow GTO_MIX tables calibrated by hand strength (nut / strong / medium / weak / draw / air) and board texture
+- **Board texture analysis** — classifies every board as dry, wet, paired, or monotone and adjusts c-bet frequency and sizing accordingly
+- **Position-aware ranges** — 8-handed preflop opening ranges calibrated by position (UTG through BTN), with correct 2.3x BTN opens and 3.0x EP opens
+- **3-bet range construction** — separates value 3-bets (strong hands) from bluff 3-bets (suited connectors, Ax suited, small pairs) for a balanced, unexploitable range
+- **SPR awareness** — stack-to-pot ratio governs committing decisions; short SPR (<4) triggers wider shove ranges, deep SPR (>16) rewards speculative hands with implied odds
+- **PFR tracking** — only the preflop raiser c-bets at full frequency; non-PFR players check more and probe at reduced frequency, matching real GTO behavior
+- **Draw semi-bluffing** — combo draws (flush draw + straight draw) are played as strong semi-bluffs; backdoor draws lower the threshold for continuation
+
+### Real-Time Equity Calculation
+Rather than a static lookup table, bots run a **Monte Carlo simulation** on every postflop decision — dealing out 40–60 random runouts to estimate actual win percentage against a range. Equity is then discounted by the number of players still in the hand.
+
+### Self-Learning Adaptation
+Every 8 hands, each bot independently recalibrates three parameters based on observed table behavior:
+
+- **Bluff frequency** — increases against tight/passive tables, decreases against calling stations
+- **C-bet frequency** — scales up when opponents fold to c-bets often, scales down when they call or raise
+- **Aggression level** — rises to exploit passive tables, pulls back against highly aggressive lineups
+
+Bots also profile each individual opponent in real time — tracking VPIP, PFR, and fold-to-c-bet — and use those reads to tighten or loosen call ranges and bluff frequencies on the fly.
+
+---
+
+## Features
+
+- **$1/$2 blinds** with four buy-in options ($5 / $10 / $100 / $200)
+- **30-second turn timer** with auto-action fallback
+- **Live HUD stats** — hover any bot seat to see VPIP, PFR, 3-Bet%, AFq, and Fold-to-C-Bet with visual bar graphs
+- **Hand evaluator** — best 5-card hand from 7 cards with named hand rankings
+- **Side pot logic** — correct all-in pot splitting for multi-player all-in situations
+- **Sound effects** — chips, cards, win/fold audio
+- **Invite link** — share a URL to bring a friend to the table (multiplayer via Vercel + KV)
+- **WPT Gold aesthetic** — felt table, card animations, gold UI theme
+
+---
+
+## Stack
+
+- Pure vanilla HTML/CSS/JavaScript — zero dependencies, zero build step
+- Single `index.html` file for the full game client
+- Optional Vercel deployment for multiplayer room state (KV storage via `/api/room`)
+- Cryptographic shuffle (`crypto.getRandomValues`) for provably fair deck dealing
+
+---
+
+## Run Locally
+
+```bash
+# Just open the file
+open index.html
+```
+
+Or deploy to Vercel by uploading the zip — the multiplayer room API activates automatically.
+
+---
+
+## Why I Built This
+
+Most poker training tools are either too simple (basic hand rankings) or too expensive (solver subscriptions). This is a free, always-available table where you can work on reads, aggression calibration, and exploitative adjustments against bots that actually push back.
